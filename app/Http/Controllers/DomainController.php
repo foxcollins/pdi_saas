@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\VerifyDomainTxt;
 use App\Models\Domain;
+use App\Services\Site\DnsTxtVerifier;
 use App\Services\Site\DomainResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -11,7 +13,7 @@ class DomainController extends Controller
 {
     public function show()
     {
-        $domains = Domain::query()
+        $domains = $this->tenantDomains()
             ->orderByDesc('is_primary')
             ->get()
             ->map(fn ($d) => [
@@ -20,6 +22,9 @@ class DomainController extends Controller
                 'is_primary' => $d->is_primary,
                 'status' => $d->status,
                 'verified_at' => $d->verified_at?->toIso8601String(),
+                'verification_token' => $d->verification_token,
+                'record_name' => app(DnsTxtVerifier::class)->recordName($d->host),
+                'last_checked_at' => $d->last_checked_at?->toIso8601String(),
             ]);
 
         return inertia('Domains', [
@@ -37,43 +42,56 @@ class DomainController extends Controller
 
         $host = app(DomainResolver::class)->normalize($request->host);
 
-        Domain::firstOrCreate(
-            ['host' => $host],
-            ['tenant_id' => tenant()->id, 'status' => 'pending']
-        );
+        $exists = Domain::query()->where('host', $host)->exists();
 
-        return back()->with('success', 'Dominio agregado. Configura el registro DNS indicado.');
-    }
-
-    public function verify(Request $request, string $domainId)
-    {
-        $domain = Domain::findOrFail($domainId);
-
-        $expected = 'pdi-verify='.Str::slug($domain->host);
-
-        if ($request->input('token') === $expected) {
-            $domain->update(['status' => 'verified', 'verified_at' => now()]);
-
-            return back()->with('success', 'Dominio verificado.');
+        if ($exists) {
+            return back()->with('success', 'Ese dominio ya está registrado en la plataforma.');
         }
 
-        return back()->with('success', "Agrega el registro TXT con el valor: {$expected} y vuelve a intentar.");
+        $domain = Domain::create([
+            'tenant_id' => tenant()->id,
+            'host' => $host,
+            'status' => 'pending',
+            'verification_token' => Str::random(config('site.domain_verification.token_bytes', 32) * 2),
+        ]);
+
+        VerifyDomainTxt::dispatch($domain);
+
+        return back()->with('success', 'Dominio agregado. Configura el registro TXT indicado.');
     }
 
-    public function makePrimary(Request $request, string $domainId)
+    public function verify(string $domainId)
     {
-        $domain = Domain::findOrFail($domainId);
+        $domain = $this->tenantDomains()->findOrFail($domainId);
 
-        Domain::query()->update(['is_primary' => false]);
+        if ($domain->status === 'verified') {
+            return back()->with('success', 'El dominio ya está verificado.');
+        }
+
+        VerifyDomainTxt::dispatch($domain);
+
+        return back()->with('success', 'Verificación solicitada. Revisa el estado en unos instantes.');
+    }
+
+    public function makePrimary(string $domainId)
+    {
+        $domain = $this->tenantDomains()->findOrFail($domainId);
+
+        $this->tenantDomains()->update(['is_primary' => false]);
         $domain->update(['is_primary' => true]);
 
         return back()->with('success', 'Dominio principal actualizado.');
     }
 
-    public function destroy(Request $request, string $domainId)
+    public function destroy(string $domainId)
     {
-        Domain::findOrFail($domainId)->delete();
+        $this->tenantDomains()->findOrFail($domainId)->delete();
 
         return back()->with('success', 'Dominio eliminado.');
+    }
+
+    private function tenantDomains()
+    {
+        return Domain::query()->where('tenant_id', tenant()->id);
     }
 }

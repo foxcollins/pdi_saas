@@ -156,7 +156,7 @@ services:
 
 - Proyecto Laravel creado con Inertia + Vue 3 + Tailwind + Postgres 16 + pgvector (Docker, puerto 54329) + Redis (Docker, 6379).
 - **E1 multi-tenant/auth**: RLS habilitado por tabla + rol BD `app_tenant` sin BYPASSRLS (comando `app:setup-db`) + `TenantScope` (setea `app.tenant_id`); registro de tenant crea `user` + `tenant` (slug único) + `business_profile` + `website` (template `minimal-business`) + `agent`.
-- **E3 custom domains**: `DomainResolver` normaliza Host (sin `www.`, sin puerto) y resuelve dominio verificado o subdominio plataforma; `GET /` sirve el sitio del tenant según Host (o la Landing si no resuelve); UI de Domains completa (agregar, verificación TXT, principal, eliminar). Tests de resolución + servicio por Host (6 tests). Pendiente: wildcard vhost local y verificación TXT automática en cola.
+- **E3 custom domains**: `DomainResolver` normaliza Host (sin `www.`, sin puerto) y resuelve dominio verificado o subdominio plataforma; `GET /` sirve el sitio del tenant según Host (o la Landing si no resuelve); UI de Domains completa (agregar, verificación TXT, principal, eliminar). Verificación TXT automática en cola: `DnsTxtVerifier` (DNS-over-HTTPS con fallback a `dns_get_record`, token aleatorio `_pdi-verify.<host>`), job `VerifyDomainTxt`, scheduler `domains:verify-pending` cada 5 min + verificación bajo demanda. Tests de resolución + servicio por Host (6 tests). Pendiente: wildcard vhost local.
 - **E2 builder**: panel visual completo (`/app/builder`) con catálogo de bloques (`config/site.php → catalog.blocks`), templates, preview, edición de `content` por bloque, editor de theme, guardar/publicar/despublicar, reset template, y modales "Crear con IA" / "Refinar con IA" (`/app/ai/generate`, `/app/ai/refine`). Render público con `PublicSite.vue` + `ChatWidget` + banner de borrador.
 - **E4/E5 knowledge + RAG**: subida por texto/URL/archivo, pipeline asíncrono (parse → chunk → embeddings → pgvector), retrieval con filtro tenant.
 - **E6 web chat**: SSE streaming con respuesta basada en conocimiento o derivación a contacto.
@@ -181,6 +181,6 @@ services:
 
 ### 10.4 Pendiente
 
-- Custom domains (E3): wildcard vhost local en Laragon y verificación TXT automática en cola (resolución por Host y UI ya funcionan).
+- Custom domains (E3): wildcard vhost local en Laragon (resolución por Host, UI y verificación TXT automática ya funcionan).
 - Tests automatizados: fuga cross-tenant (RLS), RetrievalService/RAG, ChatService, BuilderController (save/publish), ContactApi y DomainResolver. Base `pdi_saas_test` en 54329. **Hecho**: 21 tests verdes (fuga app+RLS, RAG, chat, builder, contacto, dominios).
 - Commit del estado actual y actualización continua de `docs/`.

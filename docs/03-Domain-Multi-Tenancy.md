@@ -103,10 +103,15 @@ Request → Host header → Domain Resolver → Tenant → Website Config → Re
 
 ### 4.2 Flujo de verificación
 
+La verificación usa **un token TXT aleatorio por dominio** (no derivado del host) para evitar falsos positivos y delegaciones abusivas. Se consulta el DNS real de forma agnóstica (DNS-over-HTTPS con fallback a `dns_get_record`), sin depender de la resolución local de la máquina.
+
 1. El tenant ingresa su dominio (ej. `www.empresa.com`).
-2. La plataforma muestra los registros DNS a crear (TXT de verificación y/o CNAME al dominio de la plataforma).
-3. Se valida el TXT (proceso en cola) → se marca `verified_at`.
+2. La plataforma genera `verification_token` aleatorio (hex 64) y muestra el registro TXT a crear:
+   `pdi-verify=<token>` en `_pdi-verify.empresa.com` (nombre host fijo, no el dominio raíz, para evitar colisión con registros TXT de SPF/DMARC).
+3. El tenant publica el registro en su DNS. La plataforma verifica el TXT en cola (job `VerifyDomainTxt`, scheduler cada 5 min + verificación bajo demanda desde la UI) → si el valor coincide, marca `verified` + `verified_at`.
 4. Cloudflare emite SSL automático para el dominio del cliente (DNS proxied).
+
+Fallo (TTL, DNS no propagado, valor incorrecto) → el dominio permanece `pending` y se reintenta automáticamente; nunca se marca verificado sin coincidencia exacta.
 
 ### 4.3 Casos
 
@@ -122,8 +127,8 @@ Request → Host header → Domain Resolver → Tenant → Website Config → Re
 - [x] `DomainResolver` (plataforma + custom domain con normalización `www.`).
 - [x] Servir el sitio en `/` según Host (custom domain y subdominio plataforma).
 - [x] UI de Domains (agregar, verificación TXT, principal, eliminar) y `DomainController`.
+- [x] Verificación TXT automática en cola: `DnsTxtVerifier` (DoH + fallback `dns_get_record`), job `VerifyDomainTxt`, scheduler `domains:verify-pending` cada 5 min y verificación bajo demanda.
 - [ ] Wildcard vhost local en Laragon para probar `*.pdi_saas.test`.
-- [ ] Verificación TXT automática en cola (hoy marca verificado manualmente).
 
 > **Probar custom domains en local (Laragon)**: añadir un vhost wildcard que apunte al proyecto para que `*.pdi_saas.test` resuelva (ej. config Apache `ServerAlias *.pdi_saas.test`, o apuntar `C:\Windows\System32\drivers\etc\hosts` + `VirtualHost` en Laragon). Sin esto, usar `/site/{slug}` como URL pública del tenant.
 

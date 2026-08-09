@@ -10,11 +10,12 @@ class Domain extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['tenant_id', 'host', 'is_primary', 'verified_at', 'status'];
+    protected $fillable = ['tenant_id', 'host', 'verification_token', 'is_primary', 'verified_at', 'status', 'last_checked_at'];
 
     protected $casts = [
         'is_primary' => 'boolean',
         'verified_at' => 'datetime',
+        'last_checked_at' => 'datetime',
     ];
 
     public function tenant(): BelongsTo

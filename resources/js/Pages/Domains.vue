@@ -6,7 +6,6 @@ import AppLayout from '../Components/AppLayout.vue';
 const props = defineProps({ domains: Array, platform_domain: String, default_url: String });
 
 const host = ref('');
-const verifyToken = ref('');
 
 function addDomain() {
     if (!host.value.trim()) return;
@@ -16,7 +15,7 @@ function addDomain() {
 }
 
 function verify(d) {
-    router.post(`/app/domains/${d.id}/verify`, { token: verifyToken.value });
+    router.post(`/app/domains/${d.id}/verify`);
 }
 
 function makePrimary(d) {
@@ -67,13 +66,18 @@ function copy(text) {
                             </div>
                         </div>
                         <div v-if="d.status !== 'verified'" class="mt-3 rounded-lg bg-slate-50 p-3">
-                            <p class="text-xs text-slate-600">Agrega este registro TXT en tu DNS:</p>
-                            <code class="mt-1 block rounded bg-white px-2 py-1 text-xs text-slate-700">
-                                pdi-verify={{ d.host }}
-                            </code>
+                            <p class="text-xs text-slate-600">Agrega este registro TXT en tu DNS (tipo <strong>TXT</strong>):</p>
+                            <div class="mt-2 flex items-center gap-2 rounded bg-white p-2">
+                                <code class="flex-1 break-all text-xs text-slate-700">{{ d.record_name }}</code>
+                                <button @click="copy(d.record_name)" class="text-[11px] font-medium text-indigo-600 hover:underline">Copiar</button>
+                            </div>
+                            <div class="mt-2 flex items-center gap-2 rounded bg-white p-2">
+                                <code class="flex-1 break-all text-xs text-slate-700">pdi-verify={{ d.verification_token }}</code>
+                                <button @click="copy(`pdi-verify=${d.verification_token}`)" class="text-[11px] font-medium text-indigo-600 hover:underline">Copiar</button>
+                            </div>
                             <div class="mt-2 flex items-center gap-2">
-                                <input v-model="verifyToken" placeholder="Valor TXT exacto" class="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs" />
-                                <button @click="verify(d)" class="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white">Verificar</button>
+                                <span class="text-[11px] text-slate-500" v-if="d.last_checked_at">Última comprobación: {{ new Date(d.last_checked_at).toLocaleString() }}</span>
+                                <button @click="verify(d)" class="ml-auto rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white">Verificar ahora</button>
                             </div>
                         </div>
                     </div>

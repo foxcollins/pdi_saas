@@ -3,6 +3,15 @@
 return [
     'platform_domain' => env('PLATFORM_DOMAIN', 'pdi_saas.test'),
 
+    'domain_verification' => [
+        'txt_prefix' => env('DOMAIN_TXT_PREFIX', 'pdi-verify'),
+        'record_name' => '_pdi-verify',
+        'token_bytes' => 32,
+        'doh_url' => env('DNS_DOH_URL', 'https://cloudflare-dns.com/dns-query'),
+        'doh_enabled' => (bool) env('DNS_DOH_ENABLED', true),
+        'native_enabled' => (bool) env('DNS_NATIVE_ENABLED', true),
+    ],
+
     'default_theme' => [
         'primary' => '#4f46e5',
         'secondary' => '#0ea5e9',
