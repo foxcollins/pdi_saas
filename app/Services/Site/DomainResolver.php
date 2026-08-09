@@ -16,13 +16,15 @@ class DomainResolver
             return null;
         }
 
-        $domain = Domain::query()
-            ->where('host', $host)
-            ->where('status', 'verified')
-            ->first();
+        foreach ([$host, $this->stripWww($host)] as $candidate) {
+            $domain = Domain::query()
+                ->whereIn('host', array_unique([$candidate, 'www.'.$candidate]))
+                ->where('status', 'verified')
+                ->first();
 
-        if ($domain) {
-            return $domain->tenant;
+            if ($domain) {
+                return $domain->tenant;
+            }
         }
 
         $platformDomain = strtolower(trim((string) config('site.platform_domain')));
@@ -46,5 +48,10 @@ class DomainResolver
         $parts = explode(':', $host);
 
         return $parts[0];
+    }
+
+    private function stripWww(string $host): string
+    {
+        return str_starts_with($host, 'www.') ? substr($host, 4) : $host;
     }
 }

@@ -96,9 +96,10 @@ CREATE INDEX idx_conversations_tenant_created
 Request → Host header → Domain Resolver → Tenant → Website Config → Render
 ```
 
-- El middleware de dominio consulta la tabla `domains` (independiente de RLS, es enrutamiento global) y resuelve `tenant_id`.
-- Si el dominio no existe o el tenant está suspendido → 404.
-- Si el Host es el dominio de plataforma (`*.plataforma.com`) → se usa la ruta de onboarding/tenant público según el subdominio.
+- `DomainResolver` (`app/Services/Site/DomainResolver.php`) normaliza el Host (minúsculas, sin `www.`, sin puerto) y consulta la tabla `domains` (independiente de RLS, es enrutamiento global) con `status = verified`. Normaliza `www.` tanto en el Host entrante como en el dominio guardado.
+- Si no hay dominio verificado, intenta el subdominio de la plataforma (`slug.platform_domain` → `tenants.slug`).
+- **Enrutamiento raíz (MVP1)**: `GET /` resuelve el Host; si hay tenant, sirve el sitio (`PublicSiteController`); si no, muestra la Landing. Con esto, un dominio personalizado o `slug.plataforma.test` renderiza el sitio sin prefijo de ruta.
+- Si el Host no resuelve o el tenant está suspendido → 404 genérico (sin filtración de datos).
 
 ### 4.2 Flujo de verificación
 
@@ -115,6 +116,16 @@ Request → Host header → Domain Resolver → Tenant → Website Config → Re
 | Dominio sin verificar | Página de "agregar registro DNS" |
 | Tenant suspendido / plan vencido | Página de aviso controlada |
 | Dominio desconocido | 404 genérico (sin filtración de datos) |
+
+### 4.4 Estado de implementación (MVP1)
+
+- [x] `DomainResolver` (plataforma + custom domain con normalización `www.`).
+- [x] Servir el sitio en `/` según Host (custom domain y subdominio plataforma).
+- [x] UI de Domains (agregar, verificación TXT, principal, eliminar) y `DomainController`.
+- [ ] Wildcard vhost local en Laragon para probar `*.pdi_saas.test`.
+- [ ] Verificación TXT automática en cola (hoy marca verificado manualmente).
+
+> **Probar custom domains en local (Laragon)**: añadir un vhost wildcard que apunte al proyecto para que `*.pdi_saas.test` resuelva (ej. config Apache `ServerAlias *.pdi_saas.test`, o apuntar `C:\Windows\System32\drivers\etc\hosts` + `VirtualHost` en Laragon). Sin esto, usar `/site/{slug}` como URL pública del tenant.
 
 ---
 

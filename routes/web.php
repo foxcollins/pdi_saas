@@ -12,9 +12,19 @@ use App\Http\Controllers\DomainController;
 use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\LeadsController;
 use App\Http\Controllers\PublicSiteController;
+use App\Services\Site\DomainResolver;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => inertia('Landing'));
+Route::get('/', function (Request $request) {
+    $tenant = app(DomainResolver::class)->resolve($request->getHost());
+
+    if ($tenant) {
+        return app(PublicSiteController::class)->show($request);
+    }
+
+    return inertia('Landing');
+});
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
