@@ -16,7 +16,7 @@ class KnowledgeRagTest extends TestCase
         $tenant = $this->makeTenant('Andina Tests', 'andina-tests', 'Hidráulica');
         $this->switchTenant($tenant);
 
-        $text = <<<TXT
+        $text = <<<'TXT'
         Horario de atención: lunes a viernes de 9 a 18 horas y sábados de 10 a 14.
         Realizamos reparación y venta de bombas hidráulicas e instalación de sistemas de riego.
         TXT;

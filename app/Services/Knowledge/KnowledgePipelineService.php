@@ -17,6 +17,7 @@ use Throwable;
 class KnowledgePipelineService
 {
     public const CHUNK_SIZE = 600;
+
     public const CHUNK_OVERLAP = 100;
 
     public function createFromUpload(Tenant $tenant, UploadedFile $file, string $title): KnowledgeDocument
@@ -105,7 +106,7 @@ class KnowledgePipelineService
             $embeddings = ai()->embed(array_column($chunks, 'content'));
             $model = $this->embeddingModel();
 
-            DB::transaction(function () use ($document, $chunks, $embeddings, $model) {
+            DB::transaction(function () use ($document, $chunks, $embeddings) {
                 $document->chunks()->delete();
 
                 foreach ($chunks as $i => $chunk) {

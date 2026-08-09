@@ -7,7 +7,7 @@ use Throwable;
 
 class RetrievalService
 {
-    public function search(string $query, int $k = null): array
+    public function search(string $query, ?int $k = null): array
     {
         $k = $k ?? (int) config('ai.retrieval_k', 5);
         $threshold = (float) config('ai.confidence_threshold', 0.16);
@@ -16,7 +16,7 @@ class RetrievalService
             $vector = ai()->queryEmbedding($query);
 
             $rows = DB::select(
-                <<<SQL
+                <<<'SQL'
                 SELECT id, content, source_ref,
                        1 - (embedding <=> ?) AS score
                 FROM knowledge_chunks
@@ -65,7 +65,7 @@ class RetrievalService
         $binds = [tenant_id()];
 
         foreach ($terms as $i => $term) {
-            $sql .= " AND content ILIKE ?";
+            $sql .= ' AND content ILIKE ?';
             $binds[] = "%{$term}%";
         }
 

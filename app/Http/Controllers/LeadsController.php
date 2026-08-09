@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lead;
+use Illuminate\Http\Request;
 
 class LeadsController extends Controller
 {
@@ -27,7 +28,7 @@ class LeadsController extends Controller
         return inertia('Leads', ['leads' => $leads]);
     }
 
-    public function updateStatus(\Illuminate\Http\Request $request, string $leadId)
+    public function updateStatus(Request $request, string $leadId)
     {
         $request->validate(['status' => ['required', 'in:new,qualified,negotiation,won,lost']]);
 

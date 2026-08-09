@@ -1,10 +1,11 @@
 <?php
 
+use App\Models\Tenant;
 use App\Services\Ai\AiManager;
 use App\Support\TenantContext;
 
 if (! function_exists('tenant')) {
-    function tenant(): ?App\Models\Tenant
+    function tenant(): ?Tenant
     {
         return TenantContext::current();
     }

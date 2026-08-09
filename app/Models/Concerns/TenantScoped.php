@@ -3,6 +3,7 @@
 namespace App\Models\Concerns;
 
 use App\Models\Scopes\TenantScope;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use RuntimeException;
 
 trait TenantScoped
@@ -22,7 +23,7 @@ trait TenantScoped
         });
     }
 
-    public function tenant(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
     }

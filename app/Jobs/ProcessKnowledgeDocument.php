@@ -12,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 
 class ProcessKnowledgeDocument implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels;
+    use InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct(public KnowledgeDocument $document)
     {

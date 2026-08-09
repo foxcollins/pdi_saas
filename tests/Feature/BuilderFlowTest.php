@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Website;
 use App\Services\Site\WebsiteBuilderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -85,7 +86,7 @@ class BuilderFlowTest extends TestCase
 
         $this->assertSame('#abcdef', $a->website->refresh()->theme['primary'] ?? null);
 
-        $siteB = \App\Models\Website::withoutGlobalScopes()->where('tenant_id', $b->id)->firstOrFail();
+        $siteB = Website::withoutGlobalScopes()->where('tenant_id', $b->id)->firstOrFail();
         $this->assertSame($before, $siteB->theme['primary'] ?? null);
     }
 }

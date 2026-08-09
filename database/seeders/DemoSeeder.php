@@ -5,19 +5,19 @@ namespace Database\Seeders;
 use App\Models\Agent;
 use App\Models\BusinessProfile;
 use App\Models\Domain;
+use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Knowledge\KnowledgePipelineService;
 use App\Services\Site\WebsiteBuilderService;
 use App\Support\TenantContext;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $plan = \App\Models\Plan::where('slug', 'business')->first();
+        $plan = Plan::where('slug', 'business')->first();
 
         $tenant = Tenant::updateOrCreate(
             ['slug' => 'andina-hidraulica'],
@@ -119,7 +119,7 @@ class DemoSeeder extends Seeder
     {
         $pipeline = app(KnowledgePipelineService::class);
 
-        $text = <<<TEXT
+        $text = <<<'TEXT'
         Andina Hidráulica es una empresa de ingeniería industrial especializada en bombas hidráulicas, con más de 15 años de experiencia en el mercado.
         Nuestros servicios incluyen ingeniería y diseño de sistemas de bombeo, mantenimiento preventivo y correctivo, distribución de repuestos originales y consultoría técnica.
         Todos los mantenimientos incluyen 6 meses de garantía sobre la mano de obra y 12 meses sobre los repuestos originales instalados.

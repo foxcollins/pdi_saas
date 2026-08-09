@@ -16,9 +16,7 @@ use Illuminate\Support\Str;
 
 class ChatService
 {
-    public function __construct(private RetrievalService $retrieval)
-    {
-    }
+    public function __construct(private RetrievalService $retrieval) {}
 
     public function respond(string $tenantSlug, string $message, array $visitor = [], ?callable $onChunk = null): array
     {
@@ -135,7 +133,7 @@ class ChatService
             ->map(fn ($r) => '- '.$r['content'])
             ->implode("\n");
 
-        $instructions = $agent->instructions ?: "Responde en español, de forma amable, profesional y concisa.";
+        $instructions = $agent->instructions ?: 'Responde en español, de forma amable, profesional y concisa.';
 
         $prompt = <<<PROMPT
         $instructions

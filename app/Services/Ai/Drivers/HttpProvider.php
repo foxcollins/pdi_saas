@@ -8,11 +8,17 @@ use GuzzleHttp\Client;
 abstract class HttpProvider implements AiProvider
 {
     protected Client $client;
+
     protected string $baseUrl;
+
     protected string $apiKey;
+
     protected array $extraHeaders = [];
+
     protected string $chatModel;
+
     protected string $fastModel;
+
     protected string $embeddingModel;
 
     public function __construct(array $config)

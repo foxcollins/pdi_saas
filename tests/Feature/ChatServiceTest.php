@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Agent;
 use App\Models\AnalyticsEvent;
+use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Lead;
 use App\Models\Message;
@@ -67,7 +68,7 @@ class ChatServiceTest extends TestCase
         app(ChatService::class)->respond($tenant->slug, 'Hola', ['email' => 'repite@example.com']);
         app(ChatService::class)->respond($tenant->slug, 'Hola de nuevo', ['email' => 'repite@example.com']);
 
-        $this->assertSame(1, \App\Models\Contact::count());
+        $this->assertSame(1, Contact::count());
         $this->assertSame(1, Conversation::count());
         $this->assertSame(4, Message::count());
     }

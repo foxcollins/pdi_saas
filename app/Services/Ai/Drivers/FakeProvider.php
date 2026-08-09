@@ -75,6 +75,6 @@ class FakeProvider implements AiProvider
             return "Según la información de {$snippet}... ".mb_substr($knowledge, 0, 380);
         }
 
-        return "Gracias por tu mensaje. Aún no tengo información suficiente sobre eso en la base de conocimiento, pero un asesor puede ayudarte. Deja tu contacto en el formulario y te responderemos pronto.";
+        return 'Gracias por tu mensaje. Aún no tengo información suficiente sobre eso en la base de conocimiento, pero un asesor puede ayudarte. Deja tu contacto en el formulario y te responderemos pronto.';
     }
 }

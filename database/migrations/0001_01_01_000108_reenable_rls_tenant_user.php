@@ -15,7 +15,7 @@ return new class extends Migration
         // 000107 reconstruyó tenant_user y perdió la RLS que 000106 había aplicado.
         DB::statement('ALTER TABLE tenant_user ENABLE ROW LEVEL SECURITY');
         DB::statement('DROP POLICY IF EXISTS tenant_user_tenant_isolation ON tenant_user');
-        DB::statement(<<<SQL
+        DB::statement(<<<'SQL'
             CREATE POLICY tenant_user_tenant_isolation
               ON tenant_user
               USING (tenant_id = current_setting('app.tenant_id', true)::uuid)

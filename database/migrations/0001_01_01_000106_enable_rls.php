@@ -48,7 +48,7 @@ return new class extends Migration
         }
 
         if ($driver === 'pgsql') {
-            DB::statement("ALTER TABLE domains DISABLE ROW LEVEL SECURITY");
+            DB::statement('ALTER TABLE domains DISABLE ROW LEVEL SECURITY');
 
             DB::statement('CREATE INDEX knowledge_chunks_embedding_hnsw ON knowledge_chunks USING hnsw (embedding vector_cosine_ops)');
         }
