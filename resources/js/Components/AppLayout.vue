@@ -17,6 +17,7 @@ const nav = [
     { label: 'Conversaciones', href: '/app/chats', icon: 'M4 5h16v10H8l-4 4V5z' },
     { label: 'Leads', href: '/app/leads', icon: 'M5 12a7 7 0 1114 0 7 7 0 01-14 0zm7 3v-3m0-3h.01' },
     { label: 'CRM', href: '/app/crm', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zm-8 6a5 5 0 00-5 5v1h18v-1a5 5 0 00-5-5H8z' },
+    { label: 'Memoria', href: '/app/memory', icon: 'M4 6h16v12H4zM8 3h8v3H8zM7 10h.01M11 10h.01M15 10h.01M8 14h.01M11 14h.01M15 14h.01' },
 ];
 
 function logout() {

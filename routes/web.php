@@ -12,6 +12,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\LeadsController;
+use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\PublicSiteController;
 use App\Services\Site\DomainResolver;
 use Illuminate\Http\Request;
@@ -71,6 +72,11 @@ Route::middleware(['auth'])->prefix('app')->group(function () {
     Route::post('/crm/tasks', [CrmController::class, 'storeTask']);
     Route::patch('/crm/tasks/{task}', [CrmController::class, 'updateTask']);
     Route::post('/crm/inbox/{conversation}/resolve', [CrmController::class, 'resolveConversation']);
+
+    Route::get('/memory', [MemoryController::class, 'index']);
+    Route::post('/memory/{contact}/consent', [MemoryController::class, 'setConsent']);
+    Route::post('/memory/{contact}/forget', [MemoryController::class, 'forget']);
+    Route::post('/memory/prune', [MemoryController::class, 'prune']);
 });
 
 Route::post('/api/chat/{slug}', [ChatApiController::class, 'stream']);

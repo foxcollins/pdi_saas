@@ -11,6 +11,7 @@ use App\Models\Lead;
 use App\Models\Message;
 use App\Models\Tenant;
 use App\Services\Ai\RetrievalService;
+use App\Services\Memory\MemoryService;
 use App\Support\TenantContext;
 use Illuminate\Support\Str;
 
@@ -70,6 +71,9 @@ class ChatService
         ]);
 
         $contact->update(['last_activity_at' => now()]);
+
+        app(MemoryService::class)->remember($conversation);
+        app(MemoryService::class)->consolidate($contact);
 
         AnalyticsEvent::create(['kind' => 'chat_message', 'context' => ['conversation_id' => $conversation->id]]);
 

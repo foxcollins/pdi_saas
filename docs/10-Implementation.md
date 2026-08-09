@@ -162,6 +162,7 @@ services:
 - **E6 web chat**: SSE streaming con respuesta basada en conocimiento o derivación a contacto.
 - **E7 dashboard**: páginas del panel (dashboard, builder, content, knowledge, domains, chats, leads). Métrica "preguntas sin respuesta" (consulta de chat sin resultados de RAG, `AnalyticsEvent kind=unanswered_question`) en `DashboardController` + tarjeta/lista en `Dashboard.vue`. Tests en `DashboardMetricsTest` (3 tests).
 - **E8 CRM**: `/app/crm` con pestañas Bandeja/Pipeline/Contactos/Tareas/Notas; escalamiento automático de conversaciones sin respuesta (`conversations.needs_human`, `escalated_at`) desde `ChatService`; kanban de leads (new→qualified→negotiation→won→lost); perfil de contacto con historial unificado (`/app/crm/contacts/{id}`); notas y tareas con RLS habilitado en las nuevas tablas (`notes`, `tasks`). Tests en `CrmTest` (4 tests).
+- **E9 memory**: `MemoryService` extrae preferencias/intereses de conversaciones (regex), consolida en `contacts.memory_summary`, gestiona consentimiento y anonimización/olvido (borra memoria + mensajes + conversaciones + leads, marca `contacts.anonymized_at`); política de retención configurable (`config/memory.php`, 365 días) con comando `memory:prune` diario en scheduler. Página `/app/memory`. Tests en `MemoryTest` (5 tests).
 - **Lead capture**: `POST /api/contact` crea Contact + Conversation + Message + Lead + AnalyticsEvent.
 
 ### 10.2 Decisiones registradas
@@ -183,5 +184,5 @@ services:
 ### 10.4 Pendiente
 
 - Custom domains (E3): wildcard vhost local en Laragon (resolución por Host, UI y verificación TXT automática ya funcionan).
-- Tests automatizados: fuga cross-tenant (RLS), RetrievalService/RAG, ChatService, BuilderController (save/publish), ContactApi, DomainResolver y verificación DNS (DoH mock, job, controlador). Base `pdi_saas_test` en 54329. **Hecho**: 30 tests verdes (fuga app+RLS, RAG, chat, builder, contacto, dominios, DNS).
+- Tests automatizados: fuga cross-tenant (RLS), RetrievalService/RAG, ChatService, BuilderController (save/publish), ContactApi, DomainResolver y verificación DNS (DoH mock, job, controlador), DashboardMetrics, Crm, Memory. Base `pdi_saas_test` en 54329. **Hecho**: 47 tests verdes (fuga app+RLS, RAG, chat, builder, contacto, dominios, DNS, dashboard, CRM, memoria).
 - Commit del estado actual y actualización continua de `docs/`.

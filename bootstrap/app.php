@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('domains:verify-pending')->everyFiveMinutes();
+        $schedule->command('memory:prune')->daily();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(prepend: [

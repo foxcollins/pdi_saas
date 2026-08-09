@@ -11,6 +11,8 @@ class CustomerMemory extends Model
 {
     use HasUuids, TenantScoped;
 
+    protected $table = 'customer_memory';
+
     protected $fillable = [
         'tenant_id', 'contact_id', 'kind', 'content', 'window_start', 'window_end', 'policy',
     ];
