@@ -9,7 +9,7 @@ Plataforma SaaS de Presencia Digital Inteligente (AI Business Platform).
   `00-macro-idea.docx` (fuente), `01-Vision.md`, `02-Product-Requirements.md`,
   `03-Domain-Multi-Tenancy.md`, `04-Architecture.md`, `05-Data-Model.md`,
   `06-AI-RAG-Memory.md`, `07-Agent-System.md`, `08-Integrations.md`,
-  `09-MVP-Backlog.md`, `10-Implementation.md`.
+  `09-MVP-Backlog.md`, `10-Implementation.md`, `11-Product-Module-Architecture.md`.
 - La fuente de verdad de cada fase es `docs/0N-<fase>.md`; el `00-macro-idea.docx`
   es solo referencia conceptual.
 

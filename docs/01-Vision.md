@@ -377,6 +377,8 @@ Estas decisiones se derivan de la visión y quedan fijadas como principios. El d
 
 ### 14.1 Decisiones fijadas
 
+> La arquitectura de producto completa (módulos, responsabilidades y principios) está consolidada en `11-Product-Module-Architecture.md`.
+
 1. **Backend monoestack**: Laravel (PHP) con frontend Inertia/Vue para la app y el builder; API y admin en el mismo lenguaje.
 2. **Multi-tenancy: shared schema + Row-Level Security (RLS)**. Una sola base de datos con `tenant_id` por fila y políticas RLS; test de fuga cross-tenant obligatorio en CI desde el día 1.
 3. **Custom domains por tenant**: cada empresa usa su dominio propio; el enrutamiento resuelve `Host → Tenant → Website Config → Render`.
