@@ -39,7 +39,7 @@ jobs:
       DB_RLS_PASSWORD: app_tenant
       APP_ENV: testing
       APP_DEBUG: true
-      APP_KEY: base64:bm9nb3JiYXRpYW55Q0lBUHBsaWNhdGlvbg==
+      APP_KEY: base64:cuJg6L2MkDRrGAMMyD4Je2sOPyoHXhguF73MyBzlrEo=
       AI_DEFAULT_PROVIDER: fake
       QUEUE_CONNECTION: sync
       SESSION_DRIVER: array
@@ -74,6 +74,9 @@ jobs:
 
       - name: Lint with Pint
         run: vendor/bin/pint --test
+
+      - name: Prepare .env
+        run: cp .env.example .env
 
       - name: Run test suite
         run: php artisan test

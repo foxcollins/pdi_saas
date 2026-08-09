@@ -41,7 +41,7 @@ class AiManager extends Manager
         $this->record([
             'trigger' => $options['trigger'] ?? 'chat',
             'model_profile_id' => $model ?? get_class($driver),
-            'tokens_in' => $this->estimateTokens(array_sum(array_map(fn ($m) => $m['content'], $messages))),
+            'tokens_in' => $this->estimateTokens(implode('', array_column($messages, 'content'))),
             'tokens_out' => $this->estimateTokens($text),
             'latency_ms' => (int) ((hrtime(true) - $start) / 1e6),
         ]);
@@ -64,7 +64,7 @@ class AiManager extends Manager
         $this->record([
             'trigger' => $options['trigger'] ?? 'chat',
             'model_profile_id' => $model ?? get_class($driver),
-            'tokens_in' => $this->estimateTokens(array_sum(array_map(fn ($m) => $m['content'], $messages))),
+            'tokens_in' => $this->estimateTokens(implode('', array_column($messages, 'content'))),
             'tokens_out' => $this->estimateTokens($full),
             'latency_ms' => (int) ((hrtime(true) - $start) / 1e6),
         ]);
