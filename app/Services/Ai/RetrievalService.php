@@ -12,6 +12,10 @@ class RetrievalService
         $k = $k ?? (int) config('ai.retrieval_k', 5);
         $threshold = (float) config('ai.confidence_threshold', 0.16);
 
+        if (ai()->isFake()) {
+            $threshold = min($threshold, 0.10);
+        }
+
         try {
             $vector = ai()->queryEmbedding($query);
 
@@ -28,12 +32,36 @@ class RetrievalService
                 [$this->vectorLiteral($vector), tenant_id(), $this->vectorLiteral($vector), $threshold, $this->vectorLiteral($vector), $k]
             );
         } catch (Throwable $e) {
-            $rows = $this->keywordFallback($query, $k, $threshold);
+            $rows = $this->keywordFallback($query, $k);
         }
 
+        $results = $this->normalize($rows, $k);
+
+        if ($results === [] && $this->hasChunks()) {
+            $results = $this->normalize($this->keywordFallback($query, $k), $k);
+        }
+
+        return $results;
+    }
+
+    public function hasKnowledge(): bool
+    {
+        return DB::table('knowledge_chunks')->exists();
+    }
+
+    private function hasChunks(): bool
+    {
+        return $this->hasKnowledge();
+    }
+
+    /**
+     * @param  array<int, object>  $rows
+     */
+    private function normalize(array $rows, int $k): array
+    {
         $results = [];
 
-        foreach ($rows as $row) {
+        foreach (array_slice($rows, 0, $k) as $row) {
             $results[] = [
                 'id' => $row->id,
                 'content' => $row->content,
@@ -45,31 +73,36 @@ class RetrievalService
         return $results;
     }
 
-    public function hasKnowledge(): bool
+    private function keywordFallback(string $query, int $k): array
     {
-        return DB::table('knowledge_chunks')->exists();
-    }
-
-    private function keywordFallback(string $query, int $k, float $threshold): array
-    {
-        $terms = array_slice(explode(' ', mb_strtolower(preg_replace('/[^\pL\pN ]+/u', ' ', $query))), 0, 6);
+        $terms = array_slice(explode(' ', mb_strtolower(preg_replace('/[^\pL\pN ]+/u', ' ', $query))), 0, 8);
         $terms = array_filter($terms, fn ($t) => mb_strlen($t) > 2);
 
         if (count($terms) === 0) {
             return [];
         }
 
-        $sql = 'SELECT id, content, source_ref, 0.5 AS score
+        $sql = 'SELECT id, content, source_ref, 0.5 AS score, ('
+            .implode(' + ', array_fill(0, count($terms), 'CASE WHEN content ILIKE ? THEN 1 ELSE 0 END'))
+            .') AS hits
                 FROM knowledge_chunks
-                WHERE tenant_id = ?';
-        $binds = [tenant_id()];
+                WHERE tenant_id = ? AND ('
+            .implode(' OR ', array_fill(0, count($terms), 'content ILIKE ?'))
+            .')
+                ORDER BY hits DESC, token_count ASC
+                LIMIT '.((int) $k);
+
+        $binds = [];
 
         foreach ($terms as $i => $term) {
-            $sql .= ' AND content ILIKE ?';
             $binds[] = "%{$term}%";
         }
 
-        $sql .= ' ORDER BY token_count ASC LIMIT '.((int) $k);
+        $binds[] = tenant_id();
+
+        foreach ($terms as $term) {
+            $binds[] = "%{$term}%";
+        }
 
         return DB::select($sql, $binds);
     }

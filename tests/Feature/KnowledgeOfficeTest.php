@@ -18,16 +18,36 @@ class KnowledgeOfficeTest extends TestCase
     {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'.
             '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'.
-            '<w:body><w:p><w:r><w:t>Reparación de bombas hidráulicas</w:t></w:r></w:p>'.
-            '<w:p><w:r><w:t>Instalación de sistemas de riego.</w:t></w:r></w:p>'.
+            '<w:body><w:p><w:r><w:t>Reparaci\u00f3n de bombas hidr\u00e1ulicas</w:t></w:r></w:p>'.
+            '<w:p><w:r><w:t>Instalaci\u00f3n de sistemas de riego.</w:t></w:r></w:p>'.
             '</w:body></w:document>';
 
         $text = app(OfficeTextExtractor::class)->extract($this->writeZip([
             'word/document.xml' => $xml,
         ]), 'docx');
 
-        $this->assertStringContainsString('Reparación de bombas hidráulicas', $text);
-        $this->assertStringContainsString('Instalación de sistemas de riego', $text);
+        $this->assertStringContainsString('Reparaci\u00f3n de bombas hidr\u00e1ulicas', $text);
+        $this->assertStringContainsString('Instalaci\u00f3n de sistemas de riego', $text);
+        $this->assertStringNotContainsString('<w:', $text);
+    }
+
+    public function test_extrae_texto_de_docx_con_atributos_y_entidades(): void
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'.
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'.
+            '<w:body>'.
+            '<w:p><w:r><w:t xml:space="preserve">Precios de bombas: </w:t></w:r></w:p>'.
+            '<w:p><w:r><w:t>USD 400 + IVA. Repuestos desde USD 120.</w:t></w:r></w:p>'.
+            '</w:body></w:document>';
+
+        $text = app(OfficeTextExtractor::class)->extract($this->writeZip([
+            'word/document.xml' => $xml,
+        ]), 'docx');
+
+        $this->assertStringContainsString('Precios de bombas', $text);
+        $this->assertStringContainsString('USD 400', $text);
+        $this->assertStringNotContainsString('<w:', $text);
+        $this->assertStringNotContainsString('standalone', $text);
     }
 
     public function test_extrae_texto_de_xlsx_incluyendo_shared_strings(): void

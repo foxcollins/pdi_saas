@@ -45,7 +45,7 @@ class KnowledgeRagTest extends TestCase
         $docA = app(KnowledgePipelineService::class)->createFromText(
             $a,
             'Doc A',
-            'Horario único de la empresa Alfa: lunes a viernes de 8 a 12 horas.'
+            'Horario \u00fanico de la empresa Alfa: lunes a viernes de 8 a 12 horas.'
         );
         app(KnowledgePipelineService::class)->process($docA);
 
@@ -57,5 +57,32 @@ class KnowledgeRagTest extends TestCase
 
         $this->assertNotEmpty($results);
         $this->assertStringContainsString('Alfa', $results[0]['content']);
+    }
+
+    public function test_el_retrieval_cae_a_busqueda_por_palabras_cuando_el_vector_no_coincide(): void
+    {
+        $tenant = $this->makeTenant('RAG Fallback', 'rag-fallback');
+        $this->switchTenant($tenant);
+
+        app(KnowledgePipelineService::class)->process(
+            app(KnowledgePipelineService::class)->createFromText(
+                $tenant,
+                'Precios',
+                'El precio de una bomba hidr\u00e1ulica de alta presi\u00f3n es de USD 400 y los repuestos desde USD 120.'
+            )
+        );
+
+        $results = app(RetrievalService::class)->search('\u00bfCu\u00e1nto cuesta una bomba de agua de alta presi\u00f3n?');
+
+        $this->assertNotEmpty($results);
+        $this->assertStringContainsString('USD 400', $results[0]['content']);
+    }
+
+    public function test_el_retrieval_no_fuerza_fallback_si_no_hay_conocimiento(): void
+    {
+        $tenant = $this->makeTenant('RAG Vacio', 'rag-vacio');
+        $this->switchTenant($tenant);
+
+        $this->assertEmpty(app(RetrievalService::class)->search('cualquier consulta sin conocimiento'));
     }
 }

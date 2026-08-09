@@ -33,7 +33,13 @@ class OfficeTextExtractor
 
         $xml = preg_replace('~</w:p>~i', "\n", $xml);
 
-        return $this->stripXmlTags($xml, 'w:t');
+        $text = $this->stripXmlTags($xml, 'w:t');
+
+        $text = preg_replace('/<[^>]+>/', ' ', $text);
+        $text = preg_replace('/[ \t]+/', ' ', $text);
+        $text = preg_replace('/\n\s*\n+/', "\n\n", $text);
+
+        return trim(html_entity_decode($text, ENT_QUOTES, 'UTF-8'));
     }
 
     private function extractXlsx(string $path): string
