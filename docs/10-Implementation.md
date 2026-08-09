@@ -179,7 +179,8 @@ services:
 - `/api/chat/{slug}` → SSE (`type:start`, `type:chunk`) respondiendo horario/contacto desde knowledge.
 - `/api/contact/{slug}` → crea lead + conversación + analytics.
 - Registro de tenant por HTTP (slug único) → dashboard + builder operativos.
-- `php artisan test` → 2 passed; `php -l` limpio en archivos modificados; `npm run build` exitoso.
+- E2E CRM/Memory (dominio local `pdi_saas.mn`): chat público sin conocimiento → SSE + conversación escalada (`needs_human=true`); chat con "busco una bomba hidráulica / prefiero contacto telefónico" → memoria capturada (interés + preferencia); `/app/crm` muestra la escalada en bandeja; `/app/memory` muestra interés y política de 365 días; resolver desde panel → `needs_human=false|resolved`; intento cross-tenant de resolver conversación ajena → `404` sin modificar datos.
+- `php artisan test` → 47 passed (181 aserciones); `php -l` limpio; `npm run build` exitoso; Pint limpio; CI verde en GitHub.
 
 ### 10.4 Pendiente
 
