@@ -29,7 +29,18 @@ class DashboardController extends Controller
                 'ai_cost_month' => (float) AiRun::where('created_at', '>=', now()->startOfMonth())->sum('cost_usd'),
                 'chat_messages' => AnalyticsEvent::where('kind', 'chat_message')->count(),
                 'page_views' => AnalyticsEvent::where('kind', 'page_view')->count(),
+                'unanswered_today' => AnalyticsEvent::where('kind', 'unanswered_question')->where('created_at', '>=', $start)->count(),
+                'unanswered_total' => AnalyticsEvent::where('kind', 'unanswered_question')->count(),
             ],
+            'unanswered_questions' => AnalyticsEvent::query()
+                ->where('kind', 'unanswered_question')
+                ->latest()
+                ->limit(8)
+                ->get()
+                ->map(fn ($e) => [
+                    'question' => $e->context['question'] ?? '',
+                    'created_at' => $e->created_at,
+                ]),
             'recent_conversations' => Conversation::query()
                 ->with(['contact', 'messages' => fn ($q) => $q->latest()->limit(3)])
                 ->latest()

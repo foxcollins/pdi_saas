@@ -160,7 +160,7 @@ services:
 - **E2 builder**: panel visual completo (`/app/builder`) con catálogo de bloques (`config/site.php → catalog.blocks`), templates, preview, edición de `content` por bloque, editor de theme, guardar/publicar/despublicar, reset template, y modales "Crear con IA" / "Refinar con IA" (`/app/ai/generate`, `/app/ai/refine`). Render público con `PublicSite.vue` + `ChatWidget` + banner de borrador.
 - **E4/E5 knowledge + RAG**: subida por texto/URL/archivo, pipeline asíncrono (parse → chunk → embeddings → pgvector), retrieval con filtro tenant. Parsers: PDF (smalot), DOCX/XLSX/PPTX (extractor OOXML vía ZipArchive+XML, `OfficeTextExtractor`), texto/URL. Mimes permitidos validados en upload.
 - **E6 web chat**: SSE streaming con respuesta basada en conocimiento o derivación a contacto.
-- **E7 dashboard**: páginas del panel (dashboard, builder, content, knowledge, domains, chats, leads).
+- **E7 dashboard**: páginas del panel (dashboard, builder, content, knowledge, domains, chats, leads). Métrica "preguntas sin respuesta" (consulta de chat sin resultados de RAG, `AnalyticsEvent kind=unanswered_question`) en `DashboardController` + tarjeta/lista en `Dashboard.vue`. Tests en `DashboardMetricsTest` (3 tests).
 - **Lead capture**: `POST /api/contact` crea Contact + Conversation + Message + Lead + AnalyticsEvent.
 
 ### 10.2 Decisiones registradas

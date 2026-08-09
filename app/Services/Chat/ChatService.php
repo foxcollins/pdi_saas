@@ -39,6 +39,13 @@ class ChatService
 
         $results = $this->retrieval->search($message);
 
+        if ($results === []) {
+            AnalyticsEvent::create([
+                'kind' => 'unanswered_question',
+                'context' => ['question' => Str::limit($message, 300), 'conversation_id' => $conversation->id],
+            ]);
+        }
+
         $system = $this->buildSystemPrompt($tenant, $profile, $agent, $results);
         $messages = $this->buildMessages($system, $conversation, $message);
 
