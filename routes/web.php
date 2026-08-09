@@ -7,6 +7,7 @@ use App\Http\Controllers\ChatApiController;
 use App\Http\Controllers\ChatsController;
 use App\Http\Controllers\ContactApiController;
 use App\Http\Controllers\ContentController;
+use App\Http\Controllers\CrmController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\KnowledgeController;
@@ -63,6 +64,13 @@ Route::middleware(['auth'])->prefix('app')->group(function () {
     Route::get('/chats', [ChatsController::class, 'index']);
     Route::get('/leads', [LeadsController::class, 'index']);
     Route::post('/leads/{lead}/status', [LeadsController::class, 'updateStatus']);
+
+    Route::get('/crm', [CrmController::class, 'index']);
+    Route::get('/crm/contacts/{contact}', [CrmController::class, 'showContact']);
+    Route::post('/crm/notes', [CrmController::class, 'storeNote']);
+    Route::post('/crm/tasks', [CrmController::class, 'storeTask']);
+    Route::patch('/crm/tasks/{task}', [CrmController::class, 'updateTask']);
+    Route::post('/crm/inbox/{conversation}/resolve', [CrmController::class, 'resolveConversation']);
 });
 
 Route::post('/api/chat/{slug}', [ChatApiController::class, 'stream']);

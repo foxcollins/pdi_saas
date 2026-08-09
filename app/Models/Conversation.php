@@ -14,10 +14,12 @@ class Conversation extends Model
 
     protected $fillable = [
         'tenant_id', 'contact_id', 'channel', 'external_channel_id',
-        'subject', 'status', 'started_at', 'ended_at',
+        'subject', 'status', 'needs_human', 'escalated_at', 'started_at', 'ended_at',
     ];
 
     protected $casts = [
+        'needs_human' => 'boolean',
+        'escalated_at' => 'datetime',
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
     ];

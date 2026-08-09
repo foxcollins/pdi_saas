@@ -161,6 +161,7 @@ services:
 - **E4/E5 knowledge + RAG**: subida por texto/URL/archivo, pipeline asíncrono (parse → chunk → embeddings → pgvector), retrieval con filtro tenant. Parsers: PDF (smalot), DOCX/XLSX/PPTX (extractor OOXML vía ZipArchive+XML, `OfficeTextExtractor`), texto/URL. Mimes permitidos validados en upload.
 - **E6 web chat**: SSE streaming con respuesta basada en conocimiento o derivación a contacto.
 - **E7 dashboard**: páginas del panel (dashboard, builder, content, knowledge, domains, chats, leads). Métrica "preguntas sin respuesta" (consulta de chat sin resultados de RAG, `AnalyticsEvent kind=unanswered_question`) en `DashboardController` + tarjeta/lista en `Dashboard.vue`. Tests en `DashboardMetricsTest` (3 tests).
+- **E8 CRM**: `/app/crm` con pestañas Bandeja/Pipeline/Contactos/Tareas/Notas; escalamiento automático de conversaciones sin respuesta (`conversations.needs_human`, `escalated_at`) desde `ChatService`; kanban de leads (new→qualified→negotiation→won→lost); perfil de contacto con historial unificado (`/app/crm/contacts/{id}`); notas y tareas con RLS habilitado en las nuevas tablas (`notes`, `tasks`). Tests en `CrmTest` (4 tests).
 - **Lead capture**: `POST /api/contact` crea Contact + Conversation + Message + Lead + AnalyticsEvent.
 
 ### 10.2 Decisiones registradas

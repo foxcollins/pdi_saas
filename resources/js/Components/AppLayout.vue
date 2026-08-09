@@ -16,6 +16,7 @@ const nav = [
     { label: 'Dominios', href: '/app/domains', icon: 'M3 7l9-4 9 4-9 4-9-4zm0 6l9 4 9-4M3 19l9 4 9-4' },
     { label: 'Conversaciones', href: '/app/chats', icon: 'M4 5h16v10H8l-4 4V5z' },
     { label: 'Leads', href: '/app/leads', icon: 'M5 12a7 7 0 1114 0 7 7 0 01-14 0zm7 3v-3m0-3h.01' },
+    { label: 'CRM', href: '/app/crm', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zm-8 6a5 5 0 00-5 5v1h18v-1a5 5 0 00-5-5H8z' },
 ];
 
 function logout() {

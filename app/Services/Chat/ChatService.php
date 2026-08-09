@@ -44,6 +44,11 @@ class ChatService
                 'kind' => 'unanswered_question',
                 'context' => ['question' => Str::limit($message, 300), 'conversation_id' => $conversation->id],
             ]);
+
+            $conversation->update([
+                'needs_human' => true,
+                'escalated_at' => now(),
+            ]);
         }
 
         $system = $this->buildSystemPrompt($tenant, $profile, $agent, $results);
