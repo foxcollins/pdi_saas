@@ -182,5 +182,5 @@ services:
 ### 10.4 Pendiente
 
 - Custom domains (E3): wildcard vhost local en Laragon (resolución por Host, UI y verificación TXT automática ya funcionan).
-- Tests automatizados: fuga cross-tenant (RLS), RetrievalService/RAG, ChatService, BuilderController (save/publish), ContactApi y DomainResolver. Base `pdi_saas_test` en 54329. **Hecho**: 21 tests verdes (fuga app+RLS, RAG, chat, builder, contacto, dominios).
+- Tests automatizados: fuga cross-tenant (RLS), RetrievalService/RAG, ChatService, BuilderController (save/publish), ContactApi, DomainResolver y verificación DNS (DoH mock, job, controlador). Base `pdi_saas_test` en 54329. **Hecho**: 30 tests verdes (fuga app+RLS, RAG, chat, builder, contacto, dominios, DNS).
 - Commit del estado actual y actualización continua de `docs/`.
