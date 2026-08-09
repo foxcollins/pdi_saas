@@ -13,16 +13,16 @@
 
 ### 1.1 Requisitos (Laragon + Docker)
 
-- Laragon: PHP 8.2+ (actualmente 8.2.17), Composer 2.5, Node 22, **PostgreSQL 16 corriendo** (puerto 5432), Redis disponible en `bin/redis`.
-- Docker Desktop: **iniciar el daemon** (estaba apagado) para servicios como pgvector/N8N cuando apliquen.
+- Laragon: PHP 8.2+ (actualmente 8.2.17), Composer 2.5, Node 22, **PostgreSQL 16 nativo** (5432/5433, se deja libre para otros proyectos).
+- Docker Desktop: **Postgres 16 + pgvector y Redis** vía `docker compose up -d` (Postgres publicado en **54329** para evitar conflicto con el de Laragon).
 - Git 2.47.
 
 ### 1.2 Checklist inicial
 
-1. Iniciar Laragon y su PostgreSQL 16 (verificar `pg_isready`).
-2. Crear base de datos `pdi_saas` (y `pdi_saas_test` para tests).
-3. Activar Redis de Laragon (`bin/redis/redis-server.exe` o el switch de Laragon) para cache/queues.
-4. Decidir y anotar en `04` el enfoque local de pgvector (Pendiente).
+1. Iniciar Docker Desktop y levantar servicios: `docker compose up -d` (db en `54329`, redis en `6379`).
+2. Configurar `.env`: `DB_CONNECTION=pgsql`, `DB_HOST=127.0.0.1`, `DB_PORT=54329`, `DB_DATABASE=pdi_saas`, `DB_USERNAME=pdi`, `DB_PASSWORD=pdi_secret`.
+3. Crear base de datos `pdi_saas_test` para tests cuando se active el pipeline CI.
+4. pgvector ya disponible en la imagen `pgvector/pgvector:pg16` (decisión en `04`): crear la extensión en la migración cuando se trabaje RAG.
 
 ---
 
@@ -147,3 +147,39 @@ services:
 3. Crear proyecto Laravel (sección 2).
 4. Implementar E1 (multi-tenant + RLS + test de fuga).
 5. Mientras tanto, decidir: modelo de embeddings definitivo y mercado/pricing (`09`).
+
+---
+
+## 10. Estado de implementación (Agosto 2026)
+
+### 10.1 Hecho (entorno local, fake provider)
+
+- Proyecto Laravel creado con Inertia + Vue 3 + Tailwind + Postgres 16 + pgvector (Docker, puerto 54329) + Redis (Docker, 6379).
+- **E1 multi-tenant/auth**: RLS habilitado por tabla + rol BD `app_tenant` sin BYPASSRLS (comando `app:setup-db`) + `TenantScope` (setea `app.tenant_id`); registro de tenant crea `user` + `tenant` (slug único) + `business_profile` + `website` (template `minimal-business`) + `agent`.
+- **E2 builder**: panel visual completo (`/app/builder`) con catálogo de bloques (`config/site.php → catalog.blocks`), templates, preview, edición de `content` por bloque, editor de theme, guardar/publicar/despublicar, reset template, y modales "Crear con IA" / "Refinar con IA" (`/app/ai/generate`, `/app/ai/refine`). Render público con `PublicSite.vue` + `ChatWidget` + banner de borrador.
+- **E4/E5 knowledge + RAG**: subida por texto/URL/archivo, pipeline asíncrono (parse → chunk → embeddings → pgvector), retrieval con filtro tenant.
+- **E6 web chat**: SSE streaming con respuesta basada en conocimiento o derivación a contacto.
+- **E7 dashboard**: páginas del panel (dashboard, builder, content, knowledge, domains, chats, leads).
+- **Lead capture**: `POST /api/contact` crea Contact + Conversation + Message + Lead + AnalyticsEvent.
+
+### 10.2 Decisiones registradas
+
+- **Website Builder = config JSON estructurada** en `websites.pages` (`{ type, variant, content }` + `theme` + `template`), renderizada por un Component Registry Vue. No se guarda HTML por cliente. Ver `04 §3.4` y `05 §3.2`.
+- **Business Profile = fuente única** que hidrata web, RAG, chat, CRM y agentes.
+- **Local sin claves de IA**: `AI_DEFAULT_PROVIDER=fake` (FakeProvider con respuestas deterministas que responden desde el conocimiento). `QUEUE_CONNECTION=sync`. Sesión/cache en `database` (Laragon sin `php_redis.dll`).
+- **Relaciones de conocimiento** corregidas a las columnas reales (`source_id`, `document_id`) y mutator de `embedding` que serializa arrays a literal `[...]` para pgvector (el binding array de PDO no aplica a `vector`).
+
+### 10.3 Verificación end-to-end (smoke tests HTTP)
+
+- Rutas públicas y del panel con login demo (`demo@andina.com`): todas 200.
+- `POST /app/builder/save` → `200 {"ok":true}`; `/app/ai/generate` → `200 ok=True`.
+- `/api/chat/{slug}` → SSE (`type:start`, `type:chunk`) respondiendo horario/contacto desde knowledge.
+- `/api/contact/{slug}` → crea lead + conversación + analytics.
+- Registro de tenant por HTTP (slug único) → dashboard + builder operativos.
+- `php artisan test` → 2 passed; `php -l` limpio en archivos modificados; `npm run build` exitoso.
+
+### 10.4 Pendiente
+
+- Tests automatizados: fuga cross-tenant (RLS), RetrievalService/RAG, ChatService, BuilderController (save/publish), ContactApi. Base `pdi_saas_test` en 54329.
+- Custom domains (E3): resolución `Host → tenant` + verificación TXT (UI de Domains lista).
+- Commit del estado actual y actualización continua de `docs/`.

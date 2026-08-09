@@ -1,0 +1,31 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: pdi_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pdi_saas
+      POSTGRES_USER: pdi
+      POSTGRES_PASSWORD: pdi_secret
+    ports:
+      - "54329:5432"
+    volumes:
+      - pdi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pdi -d pdi_saas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: pdi_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - pdi_redisdata:/data
+
+volumes:
+  pdi_pgdata:
+  pdi_redisdata:

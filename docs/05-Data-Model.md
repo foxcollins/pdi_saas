@@ -24,7 +24,8 @@
 ```
 tenants ──< domains                    (custom domains → tenant)
 tenants ──< website                    (1:1, sitio del tenant)
-website  ──< pages ──< page_blocks     (bloques/componentes por página)
+website  ── pages (jsonb)              (páginas como config JSON, ver §3.2)
+tenants ──< business_profiles          (1:1, perfil comercial que hidrata el sitio)
 tenants ──< users (pivot)              (usuarios con rol por tenant)
 tenants ──< knowledge_documents ──< knowledge_chunks ──[embedding vector]
 tenants ──< knowledge_sources          (URLs, FAQs, texto manual)
@@ -92,16 +93,17 @@ tenants ──< analytics_events
 ### 3.2 Website (tenant-scoped)
 
 **websites**
-| tenant_id | id | name | template | theme (jsonb: logo, colores, tipografías) | status (draft/live) | published_at |
+| tenant_id | id | name | template | theme (jsonb: logo, colores, tipografías) | pages (jsonb) | status (draft/live) | published_at |
 
-**pages**
-| tenant_id | slug | title | meta (seo jsonb) | layout | order_index | is_home | status |
+> **Decisión (MVP1)**: el sitio no se modela como tablas normalizadas `pages`/`page_blocks`. Se guarda **config JSON estructurada** en `websites.pages`: array de páginas, cada una con `{ slug, title, meta, sections: [ { type, variant, content } ] }`. `type` referencia el catálogo de bloques (`config/site.php → catalog.blocks`), `theme` y `template` fijan el diseño. El frontend (Component Registry Vue) renderiza cada `type`; nunca se guarda HTML por cliente. `business_profiles` es la fuente única que hidrata el contenido de los bloques (web, RAG, chat, CRM, agentes).
 
-**page_blocks**
-| tenant_id | page_id | type (hero/navbar/servicios/faq/chat/...) | content (jsonb) | order_index | settings (jsonb) |
+**business_profiles**
+| tenant_id | id | name | tagline | description | logo_url | industry | services (jsonb) | products (jsonb) | branches (jsonb) | schedule (jsonb) | contact (jsonb) | social (jsonb) | faqs (jsonb) | team (jsonb) | certifications (jsonb) |
 
 **media**
 | tenant_id | id | file_key (R2) | url | mime | size | alt |
+
+> **Nota**: las antiguas tablas normalizadas `pages` y `page_blocks` (borrador v1) quedaron descartadas en el MVP1 a favor de la config JSON en `websites.pages`. Si un tenant necesita editorial complejo (múltiples páginas SEO pesadas), se puede migrar puntualmente a tablas sin cambiar la app.
 
 ### 3.3 Knowledge (tenant-scoped)
 

@@ -61,7 +61,7 @@
 | Componente | Tecnología | Notas |
 |---|---|---|
 | Framework | **Laravel** (PHP 8.3+) | API + admin + render web + jobs |
-| Frontend | **Inertia + Vue 3 + Tailwind** | App admin y builder |
+| Frontend | **Inertia + Vue 3 + Tailwind** | App admin y builder (Component Registry, §3.4) |
 | Admin interno | **Filament** (donde aplique) | Backoffice rápido del staff |
 | Base de datos | **PostgreSQL 16 + pgvector** | Datos + vectores en una instancia |
 | Cache / colas | **Redis** | Cache, sesiones, queues |
@@ -90,6 +90,15 @@
 | Storage | **Cloudflare R2** (S3-compatible, sin egress) |
 | Backups | Postgres automático (WAL + dumps) → R2 |
 | Monitoreo | logs estructurados + metricas básicas (Sentry/Uptime Kuma) |
+
+### 3.4 Website Builder (decisión MVP1)
+
+- **El producto es configuración, no HTML por cliente.** Cada sitio es un documento JSON estructurado guardado en `websites` (`template` + `theme` + `pages[].sections[]` con `{ type, variant, content }`), no markup.
+- **Catálogo de bloques** en `config/site.php` (`catalog.blocks`): lista de tipos (hero, navbar, services, products, gallery, faq, contact, cta, footer, chat, etc.) con sus props por defecto y variantes.
+- **Component Registry (Vue)**: un mapa `{ [type]: Component }` en el frontend renderiza cada bloque tanto en el panel (preview + edición de `content` con props genéricos) como en el sitio público (`PublicSite.vue`). El `theme` (colores/tipografía/logo) se aplica como variables CSS a todos los bloques.
+- **Business Profile es la fuente única**: el perfil comercial (`business_profiles`) hidrata el contenido por defecto de los bloques y alimenta web, RAG, chat, CRM y agentes. Editar el perfil propaga a todo el sistema.
+- **Persistencia**: el builder guarda vía `POST /app/builder/save` (CSRF) todo el JSON del sitio; `status` `draft/live` + `published_at` controlan el render público.
+- **IA del builder**: `POST /app/ai/generate` y `/app/ai/refine` construyen/modifican el JSON a partir del perfil y de instrucciones, usando la capa `AiProvider` (routing por costo/calidad).
 
 ---
 
@@ -133,16 +142,18 @@ Agente decide usar herramienta → registro del tool call (trazabilidad)
 
 ```
 app/
-  Domains/                    # Tenant → dominio
-  Ai/
-    Providers/                # AiProvider, OpenRouter, embeddings
-    Orchestrator/             # intención, routing, agentes
-    RAG/                      # pipeline, chunking, retrieval
-    Tools/                    # catálogo, cotización, CRM, agenda, webhook
-  Modules/                    # Plugins: whatsapp, social, email, booking...
-  Models/                     # + TenantScope (RLS helper)
-  Http/Middleware/            # ResolveTenant, SetTenantContext
-  Jobs/                       # parse-document, embed, send-webhook...
+  Http/
+    Controllers/            # Panel, builder, sitio público, chat, contacto
+    Middleware/             # SetTenantContext, ResolveTenant (Host → tenant)
+  Services/
+    Ai/Drivers/             # AiProvider + FakeProvider/OpenRouterProvider
+    Knowledge/              # pipeline, chunking, retrieval (RAG)
+    Chat/                   # ChatService (orquestación + contexto)
+    Site/                   # builder, templates, blocks
+  Models/                   # + TenantScope (RLS helper), models con casts JSONB
+  Support/                  # TenantContext (set_config app.tenant_id), helpers
+  Jobs/                     # parse-document, embed, send-webhook...
+  Console/Commands/         # app:setup-db (roles/Rls/app_tenant)
 docs/
   ...
 ```
@@ -161,8 +172,8 @@ docs/
 
 ### 6.3 Pendiente de decisión
 
-- [ ] **Postgres local**: ¿usar el PostgreSQL de Laragon (sin pgvector) para dev de CRUD y levantar `pgvector/pgvector:pg16` en Docker cuando se trabaje RAG, o usar Postgres con pgvector por Docker desde el día 1? (Recomendado: Laragon para CRUD; Docker para RAG/N8N).
-- [ ] **Redis**: activar desde Laragon (`bin/redis`) al llegar a queues.
+- [x] **Postgres local**: **Postgres 16 + pgvector por Docker desde el día 1** (`pgvector/pgvector:pg16`), publicado en el host en el puerto **54329** para no chocar con el PostgreSQL 16 nativo de Laragon (que queda libre en 5432/5433). Redis por Docker en 6379.
+- [x] **Redis**: activado vía Docker (`redis:7-alpine`, puerto 6379) al llegar a queues/cache.
 - [ ] Definir hostnames locales: `*.test` de Laragon + ngrok para pruebas de webhook/WhatsApp.
 
 ---
