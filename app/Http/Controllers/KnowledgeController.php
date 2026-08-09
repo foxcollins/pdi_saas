@@ -33,7 +33,7 @@ class KnowledgeController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:15360'],
+            'file' => ['required', 'file', 'max:15360', 'mimes:pdf,txt,md,csv,docx,xlsx,pptx'],
             'title' => ['nullable', 'string', 'max:255'],
         ]);
 

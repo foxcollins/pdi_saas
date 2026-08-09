@@ -89,11 +89,7 @@ class KnowledgePipelineService
         $document->update(['status' => 'processing', 'error' => null]);
 
         try {
-            $text = match (true) {
-                $document->source->type === 'url' => $this->extractUrl($document->storage_key),
-                $document->mime === 'application/pdf' => $this->extractPdf($document),
-                default => $this->extractStoredText($document),
-            };
+            $text = $this->extractText($document);
 
             $text = $this->clean($text);
 
@@ -137,6 +133,31 @@ class KnowledgePipelineService
 
             report($e);
         }
+    }
+
+    private function extractText(KnowledgeDocument $document): string
+    {
+        if ($document->source->type === 'url') {
+            return $this->extractUrl($document->storage_key);
+        }
+
+        if ($document->mime === 'application/pdf') {
+            return $this->extractPdf($document);
+        }
+
+        $extension = strtolower(pathinfo($document->filename, PATHINFO_EXTENSION));
+
+        if (in_array($extension, ['docx', 'xlsx', 'pptx'], true)) {
+            $path = Storage::disk('local')->path($document->storage_key);
+
+            if (! file_exists($path)) {
+                throw new \RuntimeException('Archivo no encontrado en el almacenamiento.');
+            }
+
+            return app(OfficeTextExtractor::class)->extract($path, $extension);
+        }
+
+        return $this->extractStoredText($document);
     }
 
     private function extractPdf(KnowledgeDocument $document): string

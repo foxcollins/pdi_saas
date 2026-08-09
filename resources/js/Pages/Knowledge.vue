@@ -66,7 +66,7 @@ function remove(source) {
                 </div>
 
                 <div v-else class="space-y-3 text-sm">
-                    <input ref="upload" type="file" accept=".pdf,.txt,.md,.csv" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs" />
+                    <input ref="upload" type="file" accept=".pdf,.txt,.md,.csv,.docx,.xlsx,.pptx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs" />
                     <button @click="uploadFile" class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Subir archivo</button>
                 </div>
             </section>
