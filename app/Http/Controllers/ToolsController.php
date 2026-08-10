@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Agent;
 use App\Models\Product;
 use App\Models\Quote;
+use App\Services\Billing\PlanService;
 use App\Services\Tools\ToolManager;
 use Illuminate\Http\Request;
 
@@ -21,6 +22,8 @@ class ToolsController extends Controller
         return inertia('Tools', [
             'tools' => $this->tools->catalog(),
             'enabled' => $agent->tools ?? [],
+            'allowed' => app(PlanService::class)->toolsAllowed($tenant),
+            'plan' => $tenant->plan?->name,
             'products' => Product::query()->orderBy('created_at')->get(),
             'quotes' => Quote::query()
                 ->with('contact:id,name,email,phone')
@@ -32,11 +35,11 @@ class ToolsController extends Controller
 
     public function updateTools(Request $request)
     {
-        $available = $this->tools->available();
+        $allowed = app(PlanService::class)->toolsAllowed(tenant());
 
         $data = $request->validate([
             'tools' => ['nullable', 'array'],
-            'tools.*' => ['required', 'string', 'in:'.implode(',', $available)],
+            'tools.*' => ['required', 'string', 'in:'.implode(',', array_intersect($this->tools->available(), $allowed))],
         ]);
 
         $agent = $this->agent();

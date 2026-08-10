@@ -41,6 +41,8 @@ return [
 
     'retrieval_k' => env('AI_RETRIEVAL_K', 5),
 
+    'tools' => ['catalog_lookup', 'quote_calculator', 'create_quote'],
+
     'prices_per_1m' => [
         'openai/text-embedding-3-small' => ['in' => 0.02, 'out' => 0.0],
         'openai/gpt-4o-mini' => ['in' => 0.15, 'out' => 0.6],

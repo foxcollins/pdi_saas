@@ -6,6 +6,8 @@ import AppLayout from '../Components/AppLayout.vue';
 const props = defineProps({
     tools: Array,
     enabled: Array,
+    allowed: Array,
+    plan: String,
     products: Array,
     quotes: Array,
 });
@@ -15,7 +17,10 @@ const success = computed(() => flash.success || '');
 
 const enabledTools = ref([...(props.enabled || [])]);
 
+const isAllowed = (name) => (props.allowed || []).includes(name);
+
 function toggleTool(name) {
+    if (!isAllowed(name)) return;
     if (enabledTools.value.includes(name)) {
         enabledTools.value = enabledTools.value.filter((t) => t !== name);
     } else {
@@ -28,6 +33,10 @@ function saveTools() {
 }
 
 const permissionLabel = { read: 'Lectura', internal: 'Escritura interna', external: 'Externa', destructive: 'Destructiva' };
+
+const hasCatalogTools = computed(() =>
+    ['catalog_lookup', 'quote_calculator', 'create_quote'].some((t) => enabledTools.value.includes(t)),
+);
 
 const newProduct = ref({ title: '', description: '', price: '', currency: 'USD', unit: '', category: '' });
 
@@ -70,19 +79,37 @@ const money = (v, c) => `${c ?? 'USD'} ${Number(v).toLocaleString('en', { minimu
         </div>
 
         <div class="mt-5 rounded-xl border border-slate-200 bg-white p-6">
+            <div class="mb-3 flex items-center justify-between">
+                <p class="text-sm text-slate-500">
+                    Plan actual: <span class="font-semibold text-slate-700">{{ plan || '—' }}</span>
+                </p>
+                <p class="text-xs text-slate-400">Las tools no incluidas en tu plan están bloqueadas.</p>
+            </div>
             <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 <label
                     v-for="tool in tools"
                     :key="tool.name"
                     class="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition"
-                    :class="enabledTools.includes(tool.name) ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 hover:border-slate-300'"
+                    :class="[
+                        !isAllowed(tool.name) ? 'border-slate-100 bg-slate-50 opacity-60' :
+                        enabledTools.includes(tool.name) ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 hover:border-slate-300',
+                    ]"
                 >
-                    <input type="checkbox" :checked="enabledTools.includes(tool.name)" @change="toggleTool(tool.name)" class="mt-1 h-4 w-4 accent-indigo-600" />
+                    <input
+                        type="checkbox"
+                        :checked="enabledTools.includes(tool.name)"
+                        :disabled="!isAllowed(tool.name)"
+                        @change="toggleTool(tool.name)"
+                        class="mt-1 h-4 w-4 accent-indigo-600"
+                    />
                     <div>
                         <p class="text-sm font-semibold text-slate-800">{{ tool.name }}</p>
                         <p class="text-xs text-slate-500">{{ tool.description }}</p>
                         <span class="mt-1 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
                             {{ permissionLabel[tool.permission] || tool.permission }}
+                        </span>
+                        <span v-if="!isAllowed(tool.name)" class="mt-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                            No incluida en tu plan
                         </span>
                     </div>
                 </label>
@@ -95,7 +122,7 @@ const money = (v, c) => `${c ?? 'USD'} ${Number(v).toLocaleString('en', { minimu
             </button>
         </div>
 
-        <div class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+        <div v-if="hasCatalogTools" class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
             <h2 class="text-sm font-semibold text-slate-800">Catálogo de productos</h2>
             <p class="mt-1 text-xs text-slate-500">Usado por las tools <code>catalog_lookup</code>, <code>quote_calculator</code> y <code>create_quote</code>.</p>
 
@@ -131,7 +158,7 @@ const money = (v, c) => `${c ?? 'USD'} ${Number(v).toLocaleString('en', { minimu
             </div>
         </div>
 
-        <div class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+        <div v-if="hasCatalogTools" class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
             <h2 class="text-sm font-semibold text-slate-800">Cotizaciones generadas</h2>
             <div class="mt-4 divide-y divide-slate-100">
                 <div v-for="quote in quotes" :key="quote.id" class="flex flex-wrap items-center justify-between gap-3 py-3">

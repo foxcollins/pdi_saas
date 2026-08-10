@@ -262,3 +262,10 @@ services:
 - **Panel `/app/tools`**: toggle de tools del agente, CRUD de productos, estado de cotizaciones y listado de cotizaciones.
 - **Fix preexistente**: `WebhookOutbox` tenía tabla `webhook_outbox` pero Eloquent infiere `webhook_outboxes`; se fijó `protected $table`.
 - **E2E local** (dominio `pdi_saas.mn`): chat de Andina con "Quiero una cotización de una bomba" → SSE con cotización de 3 productos, `Q-andina-hidraulica-0001`, PDF emitido, lead y `tool_runs` registrados. `php artisan test` → **95 passed (423 aserciones)**.
+
+### 10.15 Orquestador de tools por plan (E13)
+
+- **Tools limitadas por plan**: `plans.limits.tools` define qué tools incluye cada plan (Starter → `catalog_lookup`, `quote_calculator`, `create_quote`; Business → + `create_lead`, `create_task`, `notify_human`; Pro/Enterprise → + `n8n_webhook`). `PlanService::toolsAllowed()` resuelve la lista y `ToolRunner::isEnabled()` valida en runtime que la tool esté en el plan **y** en `agents.tools` (un agente no puede ejecutar una tool fuera de su plan, aunque esté marcada).
+- **Panel `/app/tools` adaptativo**: muestra el plan actual, bloquea visualmente las tools no incluidas ("No incluida en tu plan", checkbox deshabilitado) y el endpoint de guardado rechaza tools fuera del plan (validación `in:` restringida). Las secciones "Catálogo de productos" y "Cotizaciones generadas" solo aparecen si hay tools de catálogo/cotización activas.
+- **Indicador de capacidades en la web pública**: `SiteRenderer` expone `site.chat.capabilities` (labels legibles de las tools activas del agente dentro de lo permitido por el plan) y el `ChatWidget` muestra los chips "Puedo ayudarte a…" bajo el header. Lo que el admin activa se refleja en el comportamiento del chat **y** en el indicador del sitio.
+- **E2E**: re-seed de `PlanSeeder` para propagar `tools` a los planes; tenant demo con plan Pro mantiene el flujo de cotización. `php artisan test` → **101 passed (468 aserciones)**.

@@ -5,13 +5,17 @@ namespace Tests\Feature;
 use App\Models\Agent;
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\Plan;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Billing\PlanService;
 use App\Services\Quotes\QuoteService;
+use App\Services\Site\WebsiteBuilderService;
 use App\Services\Tools\ToolContext;
 use App\Services\Tools\ToolException;
 use App\Services\Tools\ToolManager;
 use App\Services\Tools\ToolOrchestrator;
+use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -20,15 +24,27 @@ class ToolsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function authTenant(string $slug = 'tools-demo'): array
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seedPlans();
+    }
+
+    private function authTenant(string $slug = 'tools-demo', string $planSlug = 'pro'): array
     {
         $user = User::factory()->create();
         $tenant = $this->makeTenant('Tools Demo', $slug);
         $tenant->users()->attach($user->id, ['role' => 'owner']);
+        $tenant->update(['plan_id' => Plan::where('slug', $planSlug)->value('id')]);
         $this->switchTenant($tenant);
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
 
         return [$user, $tenant];
+    }
+
+    private function seedPlans(): void
+    {
+        $this->seed(PlanSeeder::class);
     }
 
     private function agentWithTools(array $tools = ['catalog_lookup', 'quote_calculator', 'create_quote', 'create_lead', 'create_task', 'n8n_webhook']): Agent
@@ -329,5 +345,79 @@ class ToolsTest extends TestCase
         $response->assertOk();
 
         $this->assertDatabaseMissing('quotes', ['status' => 'draft']);
+    }
+
+    public function test_el_plan_limita_las_tools_permitidas(): void
+    {
+        $this->authTenant('tools-plan-starter', 'starter');
+        $allowed = app(PlanService::class)->toolsAllowed(tenant());
+
+        $this->assertSame(['catalog_lookup', 'quote_calculator', 'create_quote'], $allowed);
+        $this->assertNotContains('create_lead', $allowed);
+        $this->assertNotContains('n8n_webhook', $allowed);
+
+        $this->authTenant('tools-plan-pro', 'pro');
+        $this->assertContains('n8n_webhook', app(PlanService::class)->toolsAllowed(tenant()));
+    }
+
+    public function test_una_tool_fuera_del_plan_no_ejecuta_aunque_este_habilitada_en_el_agente(): void
+    {
+        $this->authTenant('tools-plan-limit', 'starter');
+        $this->agentWithTools(['create_lead']);
+
+        $context = new ToolContext(tenant(), $this->agentWithTools(['create_lead']));
+
+        $this->expectException(ToolException::class);
+        app(ToolManager::class)->run('create_lead', ['name' => 'Ana', 'phone' => '+51999123456'], $context);
+    }
+
+    public function test_el_panel_rechaza_tools_fuera_del_plan(): void
+    {
+        $this->authTenant('tools-plan-panel', 'starter');
+        $this->agentWithTools([]);
+
+        $this->put('/app/tools', ['tools' => ['n8n_webhook']])->assertSessionHasErrors('tools.0');
+    }
+
+    public function test_el_panel_muestra_las_tools_permitidas_por_plan(): void
+    {
+        $this->authTenant('tools-plan-page', 'starter');
+        $this->agentWithTools(['catalog_lookup']);
+
+        $this->get('/app/tools')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Tools')
+                ->where('plan', 'Starter')
+                ->has('allowed', 3)
+                ->where('allowed.0', 'catalog_lookup')
+                ->where('allowed.2', 'create_quote'));
+    }
+
+    public function test_la_web_publica_expone_las_capacidades_activas_del_agente(): void
+    {
+        $this->authTenant('tools-web-caps', 'pro');
+        $this->agentWithTools(['catalog_lookup', 'create_quote', 'n8n_webhook']);
+        app(WebsiteBuilderService::class)->createSite(tenant(), 'minimal-business', 'Tools Demo');
+
+        $this->get('/site/'.tenant()->slug)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('PublicSite')
+                ->where('site.chat.capabilities.0', 'Consultar el catálogo de productos')
+                ->where('site.chat.capabilities.1', 'Generar cotizaciones con PDF'));
+    }
+
+    public function test_la_web_publica_no_expone_capacidades_si_no_hay_tools_activas(): void
+    {
+        $this->authTenant('tools-web-nocaps', 'starter');
+        $this->agentWithTools([]);
+        app(WebsiteBuilderService::class)->createSite(tenant(), 'minimal-business', 'Tools Demo');
+
+        $this->get('/site/'.tenant()->slug)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('PublicSite')
+                ->where('site.chat.capabilities', []));
     }
 }

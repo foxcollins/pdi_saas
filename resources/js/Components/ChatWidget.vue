@@ -5,6 +5,7 @@ const props = defineProps({
     slug: { type: String, required: true },
     title: { type: String, default: 'Asistente virtual' },
     welcome: { type: String, default: 'Hola, ¿en qué puedo ayudarte?' },
+    capabilities: { type: Array, default: () => [] },
     primary: { type: String, default: '#4f46e5' },
 });
 
@@ -124,6 +125,17 @@ async function send() {
         >
             <div class="px-4 py-3 text-white" :style="{ backgroundColor: primary }">
                 <p class="text-sm font-semibold">{{ title }}</p>
+            </div>
+
+            <div v-if="props.capabilities.length" class="border-b border-slate-100 bg-slate-50 px-4 py-2">
+                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Puedo ayudarte a</p>
+                <div class="mt-1 flex flex-wrap gap-1">
+                    <span
+                        v-for="cap in props.capabilities"
+                        :key="cap"
+                        class="rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-600 shadow-sm ring-1 ring-slate-200"
+                    >{{ cap }}</span>
+                </div>
             </div>
 
             <div v-if="showProfile" class="border-b border-slate-100 p-4 text-sm">

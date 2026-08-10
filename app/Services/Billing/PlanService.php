@@ -20,6 +20,13 @@ class PlanService
         return array_merge($planLimits, $tenant->settings['ai'] ?? []);
     }
 
+    public function toolsAllowed(Tenant $tenant): array
+    {
+        $plan = $tenant->plan;
+
+        return array_values(array_unique($plan?->limits['tools'] ?? config('ai.tools', [])));
+    }
+
     public function usage(Tenant $tenant): array
     {
         $monthStart = now()->startOfMonth();

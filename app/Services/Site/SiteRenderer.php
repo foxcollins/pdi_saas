@@ -3,6 +3,7 @@
 namespace App\Services\Site;
 
 use App\Models\Tenant;
+use App\Services\Billing\PlanService;
 
 class SiteRenderer
 {
@@ -38,6 +39,7 @@ class SiteRenderer
                     'enabled' => $theme['chat_enabled'] ?? true,
                     'title' => $agent?->name ?: ($theme['chat_title'] ?? 'Asistente virtual'),
                     'welcome' => $agentGuardrails['welcome'] ?? ($theme['chat_welcome'] ?? 'Hola, ¿en qué puedo ayudarte?'),
+                    'capabilities' => $this->capabilities($tenant, $agent),
                 ],
                 'status' => $website->status,
             ],
@@ -45,6 +47,30 @@ class SiteRenderer
             'profile' => $this->publicProfile($profile),
             'published' => $website->isLive(),
         ];
+    }
+
+    private function capabilities(Tenant $tenant, ?object $agent): array
+    {
+        $allowed = app(PlanService::class)->toolsAllowed($tenant);
+        $enabled = is_array($agent?->tools) ? $agent->tools : [];
+
+        $active = array_values(array_intersect($allowed, $enabled));
+
+        $labels = [
+            'catalog_lookup' => 'Consultar el catálogo de productos',
+            'quote_calculator' => 'Calcular presupuestos',
+            'create_quote' => 'Generar cotizaciones con PDF',
+            'create_lead' => 'Registrar tus datos de contacto',
+            'create_task' => 'Crear tareas de seguimiento',
+            'notify_human' => 'Derivar a un asesor humano',
+            'n8n_webhook' => 'Enviar información a sistemas externos',
+        ];
+
+        return collect($active)
+            ->map(fn ($tool) => $labels[$tool] ?? null)
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private function publicProfile(?object $profile): array

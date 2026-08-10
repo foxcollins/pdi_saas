@@ -34,6 +34,13 @@ const sections = props.page?.sections || [];
             </div>
         </footer>
 
-        <ChatWidget v-if="theme.chat_enabled" :slug="site.slug" :title="site.chat?.title" :welcome="site.chat?.welcome" :primary="theme.primary" />
+        <ChatWidget
+            v-if="theme.chat_enabled"
+            :slug="site.slug"
+            :title="site.chat?.title"
+            :welcome="site.chat?.welcome"
+            :capabilities="site.chat?.capabilities"
+            :primary="theme.primary"
+        />
     </div>
 </template>

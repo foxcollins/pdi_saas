@@ -3,6 +3,7 @@
 namespace App\Services\Tools;
 
 use App\Models\ToolRun;
+use App\Services\Billing\PlanService;
 use Illuminate\Support\Facades\Validator;
 
 class ToolRunner
@@ -82,7 +83,11 @@ class ToolRunner
 
         $enabled = is_array($enabled) ? $enabled : [];
 
-        return in_array($name, $enabled, true);
+        if (! in_array($name, $enabled, true)) {
+            return false;
+        }
+
+        return in_array($name, app(PlanService::class)->toolsAllowed($context->tenant), true);
     }
 
     protected function validate(Tool $tool, array $args): void

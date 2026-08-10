@@ -95,6 +95,28 @@ Cada agente tiene: `instrucciones`, `tools habilitadas`, `permisos`, `objetivos`
 
 - Política por tenant: `auto_actions` (enumeración de tools que ejecuta sola) o modo "aprobar humano".
 
+### 4.4 Tools habilitadas por plan (E13)
+
+El catálogo de tools que un tenant puede activar está **limitado por su plan** (`plans.limits.tools`). El `PlanService::toolsAllowed()` resuelve la lista; `ToolRunner::isEnabled()` valida en runtime que la tool esté en el plan **y** en `agents.tools`. Así el panel `/app/tools` y el chat solo reflejan lo que el plan permite:
+
+| Plan | Tools incluidas |
+|---|---|
+| Starter | `catalog_lookup`, `quote_calculator`, `create_quote` |
+| Business | + `create_lead`, `create_task`, `notify_human` |
+| Pro / Enterprise | + `n8n_webhook` |
+
+### 4.5 Indicador de capacidades en la web pública (E13)
+
+El widget de chat de la web pública del tenant muestra un **indicador de capacidades activas** (ej. "Puedo cotizar productos y recibir tus datos") derivado de las tools realmente habilitadas por plan + agente. Lo que el admin activa en `/app/tools` se refleja tanto en el comportamiento del chat como en el indicador del sitio.
+
+### 4.6 Panel `/app/tools` adaptativo (E13)
+
+El panel **muestra u oculta secciones según las tools activas** del agente (y lo que el plan permite):
+
+- Si ninguna tool de catálogo/cotización está activa → se ocultan las secciones "Catálogo de productos" y "Cotizaciones".
+- Si `create_task` está activa → se muestra la sección de tareas/estado.
+- Las tools no incluidas en el plan aparecen **bloqueadas** (deshabilitadas con aviso de upgrade), no solo ocultas.
+
 ---
 
 ## 5. Guardrails y seguridad
@@ -134,5 +156,6 @@ Cada agente tiene: `instrucciones`, `tools habilitadas`, `permisos`, `objetivos`
 - [x] Un agente ejecuta el flujo "cotización" completo: requisitos → catálogo → cálculo → PDF → lead → envío → seguimiento. *(E14: `catalog_lookup` → `quote_calculator` → `create_quote` con PDF → `create_lead` → `n8n_webhook`; integrado en `ChatService` por detección de intención.)*
 - [ ] Acciones destructivas/externas controladas por política (auto vs aprobar). *(parcial: `n8n_webhook` con nivel `external` y toggle por agente en `/app/tools`)*
 - [x] Toda acción registrada y auditable. *(tabla `tool_runs` con input/output/status/latencia por tenant)*
-- [ ] Budget por tenant respetado; loops limitados. *(los límites IA de `AiUsageService` aplican al chat; el loop de tools queda para E13)*
+- [x] Budget por tenant respetado; loops limitados. *(E13: tools limitadas por plan vía `plans.limits.tools` y validadas en runtime por `ToolRunner`; los límites IA de `AiUsageService` aplican al chat)*
+- [x] El admin ve qué tools están activas y el cliente ve qué puede hacer el agente. *(E13: panel `/app/tools` adaptativo + indicador de capacidades en la web pública)*
 - [ ] Escalamiento a humano con contexto completo. *(bandeja CRM ya escala; tool `notify_human` registra la escalada)*
