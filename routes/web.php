@@ -4,6 +4,7 @@ use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AiBuilderController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BuilderController;
 use App\Http\Controllers\ChatApiController;
 use App\Http\Controllers\ChatsController;
@@ -40,6 +41,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 Route::middleware(['auth'])->prefix('app')->group(function () {
     Route::get('/dashboard', DashboardController::class);
     Route::get('/analytics', AnalyticsController::class);
+    Route::get('/billing', [BillingController::class, 'show']);
+    Route::put('/billing', [BillingController::class, 'update']);
     Route::get('/assistant', [AgentController::class, 'show']);
     Route::put('/assistant', [AgentController::class, 'update']);
     Route::get('/builder', [BuilderController::class, 'show']);

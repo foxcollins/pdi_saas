@@ -4,6 +4,7 @@ namespace App\Services\Ai;
 
 use App\Models\AiRun;
 use App\Models\Tenant;
+use App\Services\Billing\PlanService;
 use Illuminate\Support\Facades\RateLimiter;
 
 class AiUsageService
@@ -70,6 +71,6 @@ class AiUsageService
 
     private function policy(Tenant $tenant): array
     {
-        return array_merge(config('ai.usage'), $tenant->settings['ai'] ?? []);
+        return app(PlanService::class)->limits($tenant);
     }
 }
