@@ -10,6 +10,7 @@ const user = computed(() => page.props.auth?.user ?? null);
 
 const nav = [
     { label: 'Panel', href: '/app/dashboard', icon: 'M3 4h18v6H3zM3 14h8v6H3zM15 14h6v6h-6z' },
+    { label: 'Analítica', href: '/app/analytics', icon: 'M4 20V4m0 16h16M8 16v-5m4 5V8m4 8v-3m4 3v-9' },
     { label: 'Diseñador', href: '/app/builder', icon: 'M12 3l8 4-8 4-8-4 8-4zM4 11v6l8 4 8-4v-6M12 15v6' },
     { label: 'Contenido', href: '/app/content', icon: 'M4 6h16M4 10h16M4 14h10M4 18h6' },
     { label: 'Conocimiento', href: '/app/knowledge', icon: 'M12 6v12m-6-6h12' },
