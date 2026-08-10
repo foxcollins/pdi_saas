@@ -21,6 +21,7 @@ const nav = [
     { label: 'CRM', href: '/app/crm', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zm-8 6a5 5 0 00-5 5v1h18v-1a5 5 0 00-5-5H8z' },
     { label: 'Memoria', href: '/app/memory', icon: 'M4 6h16v12H4zM8 3h8v3H8zM7 10h.01M11 10h.01M15 10h.01M8 14h.01M11 14h.01M15 14h.01' },
     { label: 'Plan', href: '/app/billing', icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
+    { label: 'Integraciones', href: '/app/integrations', icon: 'M9 12h6m-6 4h6m2-9a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2M9 5a2 2 0 012-2h2a2 2 0 012 2v2H9V5z' },
 ];
 
 function logout() {

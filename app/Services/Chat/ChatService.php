@@ -23,7 +23,7 @@ class ChatService
         private AiUsageService $usage,
     ) {}
 
-    public function respond(string $tenantSlug, string $message, array $visitor = [], ?callable $onChunk = null): array
+    public function respond(string $tenantSlug, string $message, array $visitor = [], ?callable $onChunk = null, string $channel = 'web', ?string $externalChannelId = null): array
     {
         $tenant = Tenant::query()->where('slug', $tenantSlug)->firstOrFail();
 
@@ -34,7 +34,7 @@ class ChatService
         $agent = Agent::query()->where('slug', 'assistant')->first() ?? new Agent(['name' => $tenant->name]);
 
         $contact = $this->findOrCreateContact($tenant, $visitor);
-        $conversation = $this->findOrCreateConversation($tenant, $contact);
+        $conversation = $this->findOrCreateConversation($tenant, $contact, $channel, $externalChannelId);
 
         Message::create([
             'conversation_id' => $conversation->id,
@@ -168,18 +168,20 @@ class ChatService
         return $contact;
     }
 
-    private function findOrCreateConversation(Tenant $tenant, Contact $contact): Conversation
+    private function findOrCreateConversation(Tenant $tenant, Contact $contact, string $channel = 'web', ?string $externalChannelId = null): Conversation
     {
         $conversation = $contact->conversations()
-            ->where('channel', 'web')
+            ->where('channel', $channel)
             ->where('status', 'open')
+            ->when($externalChannelId, fn ($q) => $q->orWhere('external_channel_id', $externalChannelId))
             ->first();
 
         if (! $conversation) {
             $conversation = Conversation::create([
                 'contact_id' => $contact->id,
-                'channel' => 'web',
-                'subject' => 'Conversación web',
+                'channel' => $channel,
+                'external_channel_id' => $externalChannelId,
+                'subject' => "Conversación {$channel}",
                 'status' => 'open',
                 'started_at' => now(),
             ]);

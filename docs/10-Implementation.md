@@ -188,11 +188,12 @@ services:
 - Fix KB (dominio local `pdi_saas.mn`): consulta "¿Cuánto cuesta una bomba hidráulica?" en chat web → SSE con respuesta desde el conocimiento (sources "Información general de Andina Hidráulica · fragmento 1 y 2"); DOCX histórico corrupto re-procesado → chunks con texto limpio sin XML. `php artisan test` → **50 passed (189 aserciones)**.
 - E11 analytics (dominio local `pdi_saas.mn`): `/app/analytics` responde 200 con totales, tendencia y desglose; rango de días respetado. `php artisan test` → **65 passed (289 aserciones)**.
 - E12 billing (dominio local `pdi_saas.mn`): `/app/billing` responde 200 con plan actual, límites y consumo; cambio de plan actualiza `tenants.plan_id` y `subscriptions`. `php artisan test` → **69 passed (318 aserciones)**.
+- Canales (dominio local `pdi_saas.mn`): `/app/integrations` responde 200 con los 5 canales; webhook WhatsApp con firma HMAC válida procesa el mensaje y envía respuesta por Graph API; Telegram responde al bot; firma inválida → 403; cross-tenant → 403; idempotencia evita duplicados. `php artisan test` → **78 passed (358 aserciones)**.
 
 ### 10.4 Pendiente
 
 - Custom domains (E3): wildcard vhost local en Laragon (resolución por Host, UI y verificación TXT automática ya funcionan).
-- Tests automatizados: fuga cross-tenant (RLS), RetrievalService/RAG, ChatService, BuilderController (save/publish), ContactApi, DomainResolver y verificación DNS (DoH mock, job, controlador), DashboardMetrics, Crm, Memory. Base `pdi_saas_test` en 54329. **Hecho**: 69 tests verdes (fuga app+RLS, RAG con fallback, chat, builder, contacto, dominios, DNS, dashboard, CRM, memoria, office, analítica, billing).
+- Tests automatizados: fuga cross-tenant (RLS), RetrievalService/RAG, ChatService, BuilderController (save/publish), ContactApi, DomainResolver y verificación DNS (DoH mock, job, controlador), DashboardMetrics, Crm, Memory. Base `pdi_saas_test` en 54329. **Hecho**: 78 tests verdes (fuga app+RLS, RAG con fallback, chat, builder, contacto, dominios, DNS, dashboard, CRM, memoria, office, analítica, billing, canales).
 - Commit del estado actual y actualización continua de `docs/`.
 
 ### 10.5 Mejora inmediata del builder
@@ -243,3 +244,11 @@ services:
 - El builder permite cargar imágenes al almacenamiento local de Laravel durante desarrollo.
 - Las URLs generadas se guardan en la configuración JSON del sitio y quedan preparadas para migrar a R2 sin cambiar el contrato del frontend.
 - Se validan MIME, tamaño y nombre antes de persistir archivos.
+
+### 10.13 Canales de mensajería (drivers + webhooks + panel)
+
+- **Arquitectura común**: `ChannelDriver` (interfaz) + `BaseHttpDriver` (cliente HTTP, firma HMAC, config cifrada) + `ChannelManager` (resuelve el driver según la integración del tenant, patrón tipo `AiManager`). Drivers: WhatsApp, Messenger (reutilizado por Instagram), Telegram y Email; `FakeChannelDriver` para tests y `channels.testing=true`.
+- **Webhooks entrantes** (`POST /webhooks/{channel}/{tenantSlug?}`): `InboundWebhookService` verifica firma (HMAC `X-Hub-Signature-256` para Meta, secret param para email, verificación `hub.challenge` en GET `/verify`), resuelve el tenant por slug o por hint (WhatsApp `phone_number_id`, Meta `page_id`/`instagram_user_id`, email `from`), aplica idempotencia (cache por hash canal+remitente+texto+tenant), setea contexto de tenant (RLS) y delega en `ChatService::respond` con canal y `external_channel_id` para unificar conversaciones. Las respuestas se envían de vuelta por el driver.
+- **Panel `/app/integrations`**: lista los 5 canales de `config/channels.php`, formularios de credenciales validados por los `fields` definidos, credenciales cifradas con `Crypt` en `integrations.config_encrypted`, `webhook_secret` auto-generado, estado activo/desactivado y URL de webhook por tenant.
+- **Testeable sin cuentas externas**: Telegram (token de @BotFather) es el único canal con callback real listo para probar; WhatsApp/Instagram/Messenger requieren Business Verification y cuentas Meta del cliente (E10 pospuesto); Email requiere provider SMTP.
+- `ChatService::respond()` acepta ahora `channel` y `externalChannelId` para crear/buscar la conversación correcta por canal. Suite al completar: **78 tests (358 aserciones)**.

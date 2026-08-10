@@ -13,11 +13,13 @@ use App\Http\Controllers\ContentController;
 use App\Http\Controllers\CrmController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomainController;
+use App\Http\Controllers\IntegrationsController;
 use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\LeadsController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\PublicSiteController;
+use App\Http\Controllers\WebhookController;
 use App\Services\Site\DomainResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +33,13 @@ Route::get('/', function (Request $request) {
 
     return inertia('Landing');
 });
+
+Route::post('/webhooks/{channel}/{tenantSlug?}', [WebhookController::class, 'handle'])
+    ->where('tenantSlug', '[a-z0-9\-]+');
+Route::get('/webhooks/{channel}/{tenantSlug?}/verify', [WebhookController::class, 'verify'])
+    ->where('tenantSlug', '[a-z0-9\-]+');
+Route::post('/webhooks/{channel}/{tenantSlug?}/fake', [WebhookController::class, 'fake'])
+    ->where('tenantSlug', '[a-z0-9\-]+');
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -87,6 +96,10 @@ Route::middleware(['auth'])->prefix('app')->group(function () {
     Route::post('/memory/{contact}/consent', [MemoryController::class, 'setConsent']);
     Route::post('/memory/{contact}/forget', [MemoryController::class, 'forget']);
     Route::post('/memory/prune', [MemoryController::class, 'prune']);
+
+    Route::get('/integrations', [IntegrationsController::class, 'index']);
+    Route::post('/integrations/{channel}', [IntegrationsController::class, 'store']);
+    Route::post('/integrations/{channel}/disable', [IntegrationsController::class, 'disable']);
 });
 
 Route::post('/api/chat/{slug}', [ChatApiController::class, 'stream']);

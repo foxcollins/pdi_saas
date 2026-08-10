@@ -3,6 +3,7 @@
 namespace App\Models\Concerns;
 
 use App\Models\Scopes\TenantScope;
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use RuntimeException;
 
