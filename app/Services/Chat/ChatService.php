@@ -10,6 +10,7 @@ use App\Models\Conversation;
 use App\Models\Lead;
 use App\Models\Message;
 use App\Models\Tenant;
+use App\Services\Ai\AiUsageService;
 use App\Services\Ai\RetrievalService;
 use App\Services\Memory\MemoryService;
 use App\Support\TenantContext;
@@ -17,13 +18,17 @@ use Illuminate\Support\Str;
 
 class ChatService
 {
-    public function __construct(private RetrievalService $retrieval) {}
+    public function __construct(
+        private RetrievalService $retrieval,
+        private AiUsageService $usage,
+    ) {}
 
     public function respond(string $tenantSlug, string $message, array $visitor = [], ?callable $onChunk = null): array
     {
         $tenant = Tenant::query()->where('slug', $tenantSlug)->firstOrFail();
 
         TenantContext::set($tenant->id);
+        $this->usage->assertCanChat($tenant);
 
         $profile = $tenant->profile;
         $agent = Agent::query()->where('slug', 'assistant')->first() ?? new Agent(['name' => $tenant->name]);
@@ -38,6 +43,30 @@ class ChatService
             'content' => $message,
         ]);
 
+        $onChunk = $onChunk ?: fn ($c) => null;
+
+        if ($this->requestsUnsupportedLanguage($message)) {
+            $reply = 'Por ahora solo puedo responder en español. Puedes escribirme tu consulta en español y con gusto te ayudaré.';
+            $onChunk($reply);
+
+            Message::create([
+                'conversation_id' => $conversation->id,
+                'direction' => 'out',
+                'author_type' => 'agent',
+                'content' => $reply,
+            ]);
+
+            $this->rememberMemory($conversation, $contact);
+            $contact->update(['last_activity_at' => now()]);
+            AnalyticsEvent::create(['kind' => 'chat_message', 'context' => ['conversation_id' => $conversation->id]]);
+
+            return [
+                'reply' => $reply,
+                'conversation_id' => $conversation->id,
+                'sources' => [],
+            ];
+        }
+
         $results = $this->retrieval->search($message);
 
         if ($results === []) {
@@ -50,18 +79,36 @@ class ChatService
                 'needs_human' => true,
                 'escalated_at' => now(),
             ]);
+
+            $reply = 'No tengo ese dato disponible en este momento. Puedes dejarnos tu consulta en el formulario de contacto y un asesor te ayudará.';
+            $onChunk($reply);
+
+            Message::create([
+                'conversation_id' => $conversation->id,
+                'direction' => 'out',
+                'author_type' => 'agent',
+                'content' => $reply,
+            ]);
+
+            $this->rememberMemory($conversation, $contact);
+            $contact->update(['last_activity_at' => now()]);
+            AnalyticsEvent::create(['kind' => 'chat_message', 'context' => ['conversation_id' => $conversation->id]]);
+
+            return [
+                'reply' => $reply,
+                'conversation_id' => $conversation->id,
+                'sources' => [],
+            ];
         }
 
         $system = $this->buildSystemPrompt($tenant, $profile, $agent, $results);
         $messages = $this->buildMessages($system, $conversation, $message);
 
         $reply = '';
-        $onChunk = $onChunk ?: fn ($c) => null;
-
         ai()->chatStream($messages, function ($chunk) use (&$reply, $onChunk) {
             $reply .= $chunk;
             $onChunk($chunk);
-        }, ['trigger' => 'chat']);
+        }, ['trigger' => 'chat', 'max_tokens' => $this->usage->maxTokens($tenant)]);
 
         Message::create([
             'conversation_id' => $conversation->id,
@@ -72,8 +119,7 @@ class ChatService
 
         $contact->update(['last_activity_at' => now()]);
 
-        app(MemoryService::class)->remember($conversation);
-        app(MemoryService::class)->consolidate($contact);
+        $this->rememberMemory($conversation, $contact);
 
         AnalyticsEvent::create(['kind' => 'chat_message', 'context' => ['conversation_id' => $conversation->id]]);
 
@@ -82,6 +128,12 @@ class ChatService
             'conversation_id' => $conversation->id,
             'sources' => array_map(fn ($r) => $r['source_ref'], array_filter($results, fn ($r) => $r['source_ref'])),
         ];
+    }
+
+    private function rememberMemory(Conversation $conversation, Contact $contact): void
+    {
+        app(MemoryService::class)->remember($conversation);
+        app(MemoryService::class)->consolidate($contact);
     }
 
     private function findOrCreateContact(Tenant $tenant, array $visitor): Contact
@@ -144,6 +196,9 @@ class ChatService
         $services = collect($profile?->services ?: [])->pluck('title')->implode(', ');
         $contact = $profile?->contact ?: [];
         $phone = $contact['phone'] ?? $contact['whatsapp'] ?? '';
+        $agentName = $agent->name ?: 'Asistente virtual';
+        $tone = $agent->guardrails['tone'] ?? 'profesional y cercano';
+        $escalation = $agent->guardrails['escalation'] ?? 'Deriva al formulario de contacto o a un asesor humano.';
 
         $knowledge = collect($results)
             ->map(fn ($r) => '- '.$r['content'])
@@ -154,8 +209,14 @@ class ChatService
         $prompt = <<<PROMPT
         $instructions
 
-        Eres el asistente virtual del sitio web de "$name" ({$industry}).
+        Tu nombre es "$agentName" y eres el asistente virtual del sitio web de "$name" ({$industry}).
         Ayudas a los visitantes con dudas sobre servicios, productos, precios, horarios y contacto.
+        Mantén un tono {$tone}.
+
+        POLÍTICA DE IDIOMA:
+        - Tu único idioma de respuesta es el español.
+        - Si el visitante solicita portugués, inglés, francés, italiano, alemán u otro idioma, responde solamente en español: "Por ahora solo puedo responder en español. Puedes escribirme tu consulta en español y con gusto te ayudaré."
+        - No traduzcas parcialmente, no mezcles idiomas y no respondas en el idioma solicitado.
 
         INFORMACIÓN DE LA EMPRESA:
         - Descripción: {$description}
@@ -166,10 +227,12 @@ class ChatService
         {$knowledge}
 
         REGLAS:
-        1. Responde SOLO con la información proporcionada arriba.
-        2. Si la consulta NO está cubierta por el conocimiento, responde que no tienes la información y deriva al formulario de contacto o al teléfono.
-        3. Nunca inventes precios, horarios o datos que no estén en el conocimiento.
-        4. Sé breve y claro.
+        1. Responde directamente la pregunta, sin introducciones como "Según la información proporcionada", "de acuerdo con los datos", "basándome en la información" o frases similares.
+        2. Usa la información de la empresa y el conocimiento recuperado como fuente de verdad, sin mencionarlos como fuente en la respuesta.
+        3. Si la consulta NO está cubierta por el conocimiento, dilo claramente: "No tengo ese dato disponible en este momento." Luego deriva al formulario de contacto o al teléfono.
+        4. Nunca inventes precios, horarios o datos que no estén en el conocimiento.
+        5. Sé breve, claro, natural y afirmativo cuando la información esté disponible.
+        6. Regla de derivación del tenant: {$escalation}
         PROMPT;
 
         return $prompt;
@@ -190,5 +253,10 @@ class ChatService
             ->all();
 
         return array_merge([['role' => 'system', 'content' => $system]], $history, [['role' => 'user', 'content' => $message]]);
+    }
+
+    private function requestsUnsupportedLanguage(string $message): bool
+    {
+        return (bool) preg_match('/(portugu|english|ingl[eé]s|franc[eê]s|italiano|alem[aã]o)/ui', $message);
     }
 }

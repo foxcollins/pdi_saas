@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AiBuilderController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BuilderController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\LeadsController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\PublicSiteController;
 use App\Services\Site\DomainResolver;
@@ -36,11 +38,14 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 
 Route::middleware(['auth'])->prefix('app')->group(function () {
     Route::get('/dashboard', DashboardController::class);
+    Route::get('/assistant', [AgentController::class, 'show']);
+    Route::put('/assistant', [AgentController::class, 'update']);
     Route::get('/builder', [BuilderController::class, 'show']);
     Route::post('/builder/save', [BuilderController::class, 'save']);
     Route::post('/builder/reorder', [BuilderController::class, 'reorder']);
     Route::post('/builder/template', [BuilderController::class, 'applyTemplate']);
     Route::post('/builder/publish', [BuilderController::class, 'publish']);
+    Route::post('/media', [MediaController::class, 'store']);
 
     Route::post('/ai/generate', [AiBuilderController::class, 'generate']);
     Route::post('/ai/refine', [AiBuilderController::class, 'refine']);

@@ -4,6 +4,7 @@ namespace App\Services\Ai\Drivers;
 
 use App\Services\Ai\AiProvider;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
 
 abstract class HttpProvider implements AiProvider
 {
@@ -56,17 +57,27 @@ abstract class HttpProvider implements AiProvider
     {
         $model = $options['model'] ?? $this->chatModel;
 
-        $stream = $this->client->request('POST', "{$this->baseUrl}/chat/completions", [
-            'headers' => $this->headers(),
-            'json' => [
-                'model' => $model,
-                'messages' => $messages,
-                'temperature' => $options['temperature'] ?? 0.4,
-                'max_tokens' => $options['max_tokens'] ?? 800,
+        try {
+            $stream = $this->client->request('POST', "{$this->baseUrl}/chat/completions", [
+                'headers' => $this->headers(),
+                'json' => [
+                    'model' => $model,
+                    'messages' => $messages,
+                    'temperature' => $options['temperature'] ?? 0.4,
+                    'max_tokens' => $options['max_tokens'] ?? 800,
+                    'stream' => true,
+                ],
                 'stream' => true,
-            ],
-            'stream' => true,
-        ]);
+            ]);
+        } catch (ConnectException) {
+            $reply = $this->chat($messages, $options);
+
+            foreach (str_split($reply, 80) as $chunk) {
+                $onChunk($chunk);
+            }
+
+            return;
+        }
 
         foreach ($stream->getBody() as $line) {
             $line = trim((string) $line);

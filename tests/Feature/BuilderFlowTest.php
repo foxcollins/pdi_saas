@@ -33,7 +33,7 @@ class BuilderFlowTest extends TestCase
                 [
                     'id' => 's-1',
                     'type' => 'hero',
-                    'variant' => 'default',
+                    'variant' => 'centered',
                     'content' => ['title' => 'Hola', 'subtitle' => 'Bienvenido'],
                     'settings' => [],
                 ],
@@ -88,5 +88,75 @@ class BuilderFlowTest extends TestCase
 
         $siteB = Website::withoutGlobalScopes()->where('tenant_id', $b->id)->firstOrFail();
         $this->assertSame($before, $siteB->theme['primary'] ?? null);
+    }
+
+    public function test_reset_template_reemplaza_las_secciones_y_el_tema_por_los_valores_por_defecto(): void
+    {
+        $user = User::factory()->create();
+        $tenant = $this->makeTenant('Builder Reset', 'builder-reset');
+        $tenant->users()->attach($user->id, ['role' => 'owner']);
+        $this->switchTenant($tenant);
+        app(WebsiteBuilderService::class)->createSite($tenant, 'minimal-business', 'Builder Reset');
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+        $this->post('/app/builder/save', [
+            'page' => [
+                'slug' => 'home',
+                'sections' => [[
+                    'id' => 'custom',
+                    'type' => 'hero',
+                    'variant' => 'centered',
+                    'content' => ['title' => 'Contenido personalizado'],
+                    'settings' => [],
+                ]],
+            ],
+            'theme' => ['primary' => '#000000'],
+        ])->assertOk();
+
+        $this->post('/app/builder/template', ['template' => 'restaurant'])
+            ->assertRedirect();
+
+        $website = $tenant->website->refresh();
+        $template = config('site.templates.restaurant');
+
+        $this->assertSame('restaurant', $website->template);
+        $this->assertSame($template['theme']['primary'], $website->theme['primary']);
+        $this->assertNotSame('custom', $website->pages[0]['sections'][0]['id']);
+        $this->assertSame($template['sections'][0]['type'], $website->pages[0]['sections'][0]['type']);
+    }
+
+    public function test_el_builder_rechaza_bloques_y_urls_invalidas(): void
+    {
+        $user = User::factory()->create();
+        $tenant = $this->makeTenant('Builder Secure', 'builder-secure');
+        $tenant->users()->attach($user->id, ['role' => 'owner']);
+        $this->switchTenant($tenant);
+        app(WebsiteBuilderService::class)->createSite($tenant, 'minimal-business', 'Builder Secure');
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+
+        $this->postJson('/app/builder/save', [
+            'page' => [
+                'slug' => 'home',
+                'sections' => [[
+                    'type' => 'unknown',
+                    'variant' => 'default',
+                    'content' => [],
+                ]],
+            ],
+            'theme' => [],
+        ])->assertStatus(422);
+
+        $this->postJson('/app/builder/save', [
+            'page' => [
+                'slug' => 'home',
+                'sections' => [[
+                    'type' => 'hero',
+                    'variant' => 'centered',
+                    'content' => ['primary_cta' => ['url' => 'javascript:alert(1)']],
+                ]],
+            ],
+            'theme' => [],
+        ])->assertStatus(422);
     }
 }

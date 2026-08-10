@@ -190,3 +190,52 @@ services:
 - Custom domains (E3): wildcard vhost local en Laragon (resolución por Host, UI y verificación TXT automática ya funcionan).
 - Tests automatizados: fuga cross-tenant (RLS), RetrievalService/RAG, ChatService, BuilderController (save/publish), ContactApi, DomainResolver y verificación DNS (DoH mock, job, controlador), DashboardMetrics, Crm, Memory. Base `pdi_saas_test` en 54329. **Hecho**: 50 tests verdes (fuga app+RLS, RAG con fallback, chat, builder, contacto, dominios, DNS, dashboard, CRM, memoria, office).
 - Commit del estado actual y actualización continua de `docs/`.
+
+### 10.5 Mejora inmediata del builder
+
+- Editor de contenido guiado por tipos de campo para evitar editar JSON anidado como texto plano.
+- Preview responsive dentro del builder (desktop, tablet y móvil).
+- Estados visibles de guardado y errores de red/validación.
+- Validación server-side de bloques, variantes, tamaño de configuración y protocolos de URL antes de persistir.
+- Mantener el alcance sin introducir dependencias nuevas ni almacenamiento de media adicional en esta iteración.
+
+### 10.6 Proveedor IA de desarrollo
+
+- Groq se incorpora como proveedor directo para chat y streaming durante desarrollo y pruebas.
+- `FakeProvider` se conserva para la suite determinista y pruebas sin red.
+- Los embeddings permanecen desacoplados del proveedor de chat; por defecto local se mantiene `fake` y se puede configurar un proveedor real mediante `AI_EMBEDDING_PROVIDER`.
+
+### 10.7 Control de uso por tenant
+
+- Cada tenant aplica límites de mensajes mensuales, diarios, por minuto y tokens máximos por respuesta.
+- El consumo se calcula desde `ai_runs` y el rate limit usa el cache configurado.
+- Al alcanzar un límite, el chat informa el bloqueo sin crear una nueva conversación ni consumir el proveedor.
+- Los valores iniciales son conservadores y se pueden sobreescribir desde `tenants.settings.ai`.
+
+### 10.8 Visibilidad de consumo
+
+- El dashboard del tenant muestra mensajes IA usados del mes, límite mensual, uso diario, costo estimado y preguntas sin respuesta.
+- Los datos se calculan con `ai_runs` y `analytics_events` bajo el contexto del tenant.
+
+### 10.9 Política de idioma
+
+- El MVP responde en español de forma consistente.
+- Las solicitudes de cambiar a otro idioma se detectan antes de llamar al proveedor IA y reciben una respuesta controlada en español.
+
+### 10.10 Agente configurable por tenant
+
+- Cada tenant puede editar el nombre, instrucciones, tono, idioma, bienvenida y reglas de escalamiento de su agente `assistant`.
+- La configuración se guarda en la entidad `agents`; las reglas de seguridad del sistema siguen siendo obligatorias.
+- El nombre y la bienvenida configurados se muestran en el widget público.
+
+### 10.11 RAG y embeddings
+
+- El proveedor de embeddings es independiente del proveedor de chat.
+- El entorno local conserva `fake` para pruebas sin red; un proveedor real se activa con `AI_EMBEDDING_PROVIDER`.
+- La ingesta valida dimensión, estado del documento y errores antes de marcarlo como listo.
+
+### 10.12 Media local del builder
+
+- El builder permite cargar imágenes al almacenamiento local de Laravel durante desarrollo.
+- Las URLs generadas se guardan en la configuración JSON del sitio y quedan preparadas para migrar a R2 sin cambiar el contrato del frontend.
+- Se validan MIME, tamaño y nombre antes de persistir archivos.

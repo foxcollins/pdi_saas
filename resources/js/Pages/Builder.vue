@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed } from 'vue';
+import { reactive, ref, computed, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import AppLayout from '../Components/AppLayout.vue';
 import BlockRenderer from '../Components/blocks/BlockRenderer.vue';
@@ -16,11 +16,33 @@ const sections = ref([...(props.page?.sections || [])]);
 const theme = reactive({ ...(props.site?.theme || {}) });
 const selected = ref(null);
 
+watch(
+    () => props.page?.sections,
+    (value) => {
+        sections.value = JSON.parse(JSON.stringify(value || []));
+        selected.value = null;
+    },
+    { deep: true },
+);
+
+watch(
+    () => props.site?.theme,
+    (value) => {
+        Object.keys(theme).forEach((key) => delete theme[key]);
+        Object.assign(theme, value || {});
+    },
+    { deep: true },
+);
+
 const blocksCatalog = computed(() => props.catalog.blocks);
 const templates = computed(() => props.catalog.templates);
 
 const saving = ref(false);
 const saved = ref(false);
+const saveError = ref('');
+const mediaBusy = ref(false);
+const mediaError = ref('');
+const previewMode = ref('desktop');
 
 const aiModal = ref(false);
 const aiForm = reactive({ company_name: '', industry: '', description: '', services: '', style: '' });
@@ -77,9 +99,65 @@ function changeVariant(i, variantKey) {
     sections.value[i].content = JSON.parse(JSON.stringify(variant.content || {}));
 }
 
+function mediaTarget(block) {
+    const content = block?.content || {};
+
+    if (Object.prototype.hasOwnProperty.call(content, 'image')) {
+        return { set: (url) => (content.image = url) };
+    }
+
+    if (Object.prototype.hasOwnProperty.call(content, 'logo')) {
+        return { set: (url) => (content.logo = url) };
+    }
+
+    if (Array.isArray(content.items)) {
+        const item = content.items.find((value) => value && (Object.prototype.hasOwnProperty.call(value, 'image') || Object.prototype.hasOwnProperty.call(value, 'photo')));
+        if (item) {
+            const key = Object.prototype.hasOwnProperty.call(item, 'image') ? 'image' : 'photo';
+            return { set: (url) => (item[key] = url) };
+        }
+    }
+
+    if (Array.isArray(content.images) && content.images[0]) {
+        return { set: (url) => (content.images[0].url = url) };
+    }
+
+    return null;
+}
+
+async function uploadMedia(event) {
+    const file = event.target.files?.[0];
+    const target = selected.value !== null ? mediaTarget(sections.value[selected.value]) : null;
+    if (!file || !target) return;
+
+    mediaBusy.value = true;
+    mediaError.value = '';
+    try {
+        const form = new FormData();
+        form.append('file', file);
+        const csrf = document.querySelector('meta[name=csrf-token]')?.content || '';
+        const res = await fetch('/app/media', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrf },
+            body: form,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.media?.url) {
+            throw new Error(data.message || Object.values(data.errors || {}).flat()[0] || 'No se pudo subir la imagen.');
+        }
+        target.set(data.media.url);
+    } catch (error) {
+        mediaError.value = error.message || 'No se pudo subir la imagen.';
+    } finally {
+        mediaBusy.value = false;
+        event.target.value = '';
+    }
+}
+
 async function save() {
     saving.value = true;
     saved.value = false;
+    saveError.value = '';
     try {
         const csrf = document.querySelector('meta[name=csrf-token]')?.content || '';
         const res = await fetch('/app/builder/save', {
@@ -87,11 +165,16 @@ async function save() {
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
             body: JSON.stringify({ page: { ...props.page, sections: sections.value }, theme }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw new Error(data.message || Object.values(data.errors || {}).flat()[0] || 'No se pudo guardar el sitio.');
+        }
         if (data.ok) {
             saved.value = true;
             setTimeout(() => (saved.value = false), 2500);
         }
+    } catch (error) {
+        saveError.value = error.message || 'No se pudo guardar el sitio.';
     } finally {
         saving.value = false;
     }
@@ -210,21 +293,30 @@ async function refine() {
                 </div>
             </aside>
 
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div class="space-y-4">
+            <div class="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div class="mb-4 flex items-center justify-between gap-2">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Vista previa</p>
+                    <div class="flex rounded-lg border border-slate-200 bg-white p-1 text-xs">
+                        <button v-for="mode in [{ key: 'desktop', label: 'Desktop' }, { key: 'tablet', label: 'Tablet' }, { key: 'mobile', label: 'Móvil' }]" :key="mode.key" @click="previewMode = mode.key" class="rounded-md px-2 py-1" :class="previewMode === mode.key ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-100'">
+                            {{ mode.label }}
+                        </button>
+                    </div>
+                </div>
+                <div class="mx-auto min-w-0 transition-all" :class="{ 'max-w-full': previewMode === 'desktop', 'max-w-[768px]': previewMode === 'tablet', 'max-w-[390px]': previewMode === 'mobile' }">
+                <div class="min-w-0 space-y-4">
                     <div
                         v-for="(block, i) in sections"
                         :key="block.id || i"
                         class="relative"
                         @click="select(i)"
                     >
-                        <div class="absolute -top-3 right-2 z-10 flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-1 shadow">
+                        <div class="absolute -top-3 right-2 z-40 flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-1 shadow">
                             <button title="Subir" class="text-slate-500 hover:text-slate-800" @click.stop="move(i, -1)">▲</button>
                             <button title="Bajar" class="text-slate-500 hover:text-slate-800" @click.stop="move(i, 1)">▼</button>
                             <button title="Duplicar" class="text-slate-500 hover:text-slate-800" @click.stop="duplicateBlock(i)">⧉</button>
                             <button title="Eliminar" class="text-red-500 hover:text-red-700" @click.stop="removeBlock(i)">✕</button>
                         </div>
-                        <BlockRenderer :block="block" :theme="theme" :selected="selected === i" />
+                        <BlockRenderer :block="block" :theme="theme" :editable="true" :selected="selected === i" />
                     </div>
 
                     <div
@@ -234,6 +326,7 @@ async function refine() {
                         Añade bloques desde el panel izquierdo.
                     </div>
                 </div>
+                </div>
             </div>
 
             <aside class="rounded-xl border border-slate-200 bg-white p-4">
@@ -241,6 +334,12 @@ async function refine() {
                     <p class="text-sm font-semibold text-slate-800">
                         {{ blocksCatalog[sections[selected].type]?.label }}
                     </p>
+                    <div v-if="mediaTarget(sections[selected])" class="mt-3 rounded-lg border border-dashed border-indigo-200 bg-indigo-50 p-3">
+                        <label class="block text-xs font-medium text-indigo-700">Imagen del bloque</label>
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="mt-2 block w-full text-xs text-slate-600" :disabled="mediaBusy" @change="uploadMedia" />
+                        <p class="mt-1 text-[11px] text-indigo-600">{{ mediaBusy ? 'Subiendo...' : 'Máximo 5 MB' }}</p>
+                        <p v-if="mediaError" class="mt-1 text-[11px] text-red-600">{{ mediaError }}</p>
+                    </div>
                     <div class="mt-2">
                         <label class="text-xs font-medium text-slate-500">Variante</label>
                         <select
@@ -297,11 +396,9 @@ async function refine() {
                                 <div class="mt-1 space-y-1 rounded-lg border border-slate-200 p-2">
                                     <div v-for="(iv, ik) in value" :key="ik" class="mb-1">
                                         <label class="block text-[11px] text-slate-400 capitalize">{{ ik }}</label>
-                                        <input
-                                            :value="iv"
-                                            @input="value[ik] = $event.target.value"
-                                            class="w-full rounded-md border border-slate-200 px-2 py-1 text-xs"
-                                        />
+                                        <textarea v-if="typeof iv === 'string' && iv.length > 100" :value="iv" @input="value[ik] = $event.target.value" rows="3" class="w-full rounded-md border border-slate-200 px-2 py-1 text-xs"></textarea>
+                                        <input v-else-if="typeof iv === 'string'" :value="iv" @input="value[ik] = $event.target.value" class="w-full rounded-md border border-slate-200 px-2 py-1 text-xs" />
+                                        <input v-else-if="typeof iv === 'number'" :value="iv" type="number" @input="value[ik] = Number($event.target.value)" class="w-full rounded-md border border-slate-200 px-2 py-1 text-xs" />
                                     </div>
                                 </div>
                             </div>
@@ -372,6 +469,9 @@ async function refine() {
                 </template>
             </aside>
         </div>
+        <p v-if="saveError" class="fixed bottom-5 right-5 z-50 max-w-sm rounded-lg bg-red-600 px-4 py-3 text-sm text-white shadow-lg">
+            {{ saveError }}
+        </p>
 
         <div v-if="aiModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="aiModal = false">
             <div class="w-full max-w-lg rounded-2xl bg-white p-6">

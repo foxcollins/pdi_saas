@@ -15,12 +15,15 @@ class SiteRenderer
         }
 
         $profile = $tenant->profile;
+        $agent = $tenant->agents()->where('slug', 'assistant')->first();
+        $agentGuardrails = $agent?->guardrails ?? [];
         $pages = $website->pages ?: [];
 
         $page = collect($pages)->firstWhere('slug', $pageSlug)
             ?? collect($pages)->first(fn ($p) => $p['slug'] === 'home')
             ?? $pages[0]
             ?? ['slug' => 'home', 'title' => 'Inicio', 'meta' => [], 'sections' => []];
+        $page = $this->normalizeMediaUrls($page);
 
         $theme = $website->theme;
 
@@ -33,8 +36,8 @@ class SiteRenderer
                 'theme' => $theme,
                 'chat' => [
                     'enabled' => $theme['chat_enabled'] ?? true,
-                    'title' => $theme['chat_title'] ?? 'Asistente virtual',
-                    'welcome' => $theme['chat_welcome'] ?? 'Hola, ¿en qué puedo ayudarte?',
+                    'title' => $agent?->name ?: ($theme['chat_title'] ?? 'Asistente virtual'),
+                    'welcome' => $agentGuardrails['welcome'] ?? ($theme['chat_welcome'] ?? 'Hola, ¿en qué puedo ayudarte?'),
                 ],
                 'status' => $website->status,
             ],
@@ -59,5 +62,18 @@ class SiteRenderer
             'schedule' => $profile->schedule,
             'branches' => $profile->branches,
         ];
+    }
+
+    private function normalizeMediaUrls(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            return array_map(fn ($item) => $this->normalizeMediaUrls($item), $value);
+        }
+
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        return preg_replace('~^https?://[^/]+(/storage/.*)$~i', '$1', $value) ?? $value;
     }
 }

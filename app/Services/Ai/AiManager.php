@@ -4,6 +4,7 @@ namespace App\Services\Ai;
 
 use App\Models\AiRun;
 use App\Services\Ai\Drivers\FakeProvider;
+use App\Services\Ai\Drivers\GroqProvider;
 use App\Services\Ai\Drivers\OpenAiProvider;
 use App\Services\Ai\Drivers\OpenRouterProvider;
 use Illuminate\Support\Manager;
@@ -18,6 +19,11 @@ class AiManager extends Manager
     public function createFakeDriver(): FakeProvider
     {
         return new FakeProvider;
+    }
+
+    public function createGroqDriver(): GroqProvider
+    {
+        return new GroqProvider(config('ai.providers.groq'));
     }
 
     public function createOpenrouterDriver(): OpenRouterProvider
@@ -72,7 +78,7 @@ class AiManager extends Manager
 
     public function embed(array $texts): array
     {
-        return $this->driver()->embed($texts);
+        return $this->driver(config('ai.embedding_provider', 'fake'))->embed($texts);
     }
 
     public function queryEmbedding(string $text): array

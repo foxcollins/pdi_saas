@@ -75,6 +75,8 @@ class DashboardMetricsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Dashboard')
                 ->where('metrics.unanswered_total', 2)
+                ->where('ai_usage.monthly_messages', 0)
+                ->where('ai_usage.monthly_limit', 1000)
                 ->has('unanswered_questions', 2));
     }
 }

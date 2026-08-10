@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Ai\AiUsageLimitException;
 use App\Services\Chat\ChatService;
 use Illuminate\Http\Request;
 
@@ -28,6 +29,8 @@ class ChatApiController extends Controller
                 });
 
                 $this->sse(['type' => 'done', 'sources' => $result['sources']]);
+            } catch (AiUsageLimitException $e) {
+                $this->sse(['type' => 'limit', 'message' => $e->getMessage()]);
             } catch (\Throwable $e) {
                 report($e);
                 $this->sse(['type' => 'error', 'message' => 'Ocurrió un error al procesar la consulta.']);

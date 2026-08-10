@@ -84,6 +84,8 @@ async function send() {
                         // fin
                     } else if (data.type === 'error') {
                         assistant.text = data.message || 'Ocurrió un error.';
+                    } else if (data.type === 'limit') {
+                        assistant.text = data.message || 'Se alcanzó el límite de uso de IA.';
                     }
                 } catch (e) {
                     /* ignore malformed */

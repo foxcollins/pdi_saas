@@ -13,6 +13,7 @@ const nav = [
     { label: 'Diseñador', href: '/app/builder', icon: 'M12 3l8 4-8 4-8-4 8-4zM4 11v6l8 4 8-4v-6M12 15v6' },
     { label: 'Contenido', href: '/app/content', icon: 'M4 6h16M4 10h16M4 14h10M4 18h6' },
     { label: 'Conocimiento', href: '/app/knowledge', icon: 'M12 6v12m-6-6h12' },
+    { label: 'Asistente IA', href: '/app/assistant', icon: 'M12 3a7 7 0 017 7v1a5 5 0 01-5 5h-2a5 5 0 01-5-5v-1a7 7 0 017-7zm-3 16h6' },
     { label: 'Dominios', href: '/app/domains', icon: 'M3 7l9-4 9 4-9 4-9-4zm0 6l9 4 9-4M3 19l9 4 9-4' },
     { label: 'Conversaciones', href: '/app/chats', icon: 'M4 5h16v10H8l-4 4V5z' },
     { label: 'Leads', href: '/app/leads', icon: 'M5 12a7 7 0 1114 0 7 7 0 01-14 0zm7 3v-3m0-3h.01' },

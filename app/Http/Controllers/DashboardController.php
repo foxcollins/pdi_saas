@@ -8,6 +8,7 @@ use App\Models\Conversation;
 use App\Models\KnowledgeDocument;
 use App\Models\Lead;
 use App\Models\Message;
+use App\Services\Ai\AiUsageService;
 
 class DashboardController extends Controller
 {
@@ -32,6 +33,7 @@ class DashboardController extends Controller
                 'unanswered_today' => AnalyticsEvent::where('kind', 'unanswered_question')->where('created_at', '>=', $start)->count(),
                 'unanswered_total' => AnalyticsEvent::where('kind', 'unanswered_question')->count(),
             ],
+            'ai_usage' => app(AiUsageService::class)->summary(tenant()),
             'unanswered_questions' => AnalyticsEvent::query()
                 ->where('kind', 'unanswered_question')
                 ->latest()

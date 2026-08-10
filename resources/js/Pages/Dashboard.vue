@@ -1,13 +1,16 @@
 <script setup>
+import { computed } from 'vue';
 import AppLayout from '../Components/AppLayout.vue';
 
-defineProps({
+const props = defineProps({
     metrics: Object,
+    ai_usage: Object,
     unanswered_questions: Array,
     recent_conversations: Array,
 });
 
 const formatDate = (v) => (v ? new Date(v).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+const usagePercent = computed(() => Math.min(100, Math.round((props.ai_usage.monthly_messages / Math.max(1, props.ai_usage.monthly_limit)) * 100)));
 </script>
 
 <template>
@@ -42,11 +45,21 @@ const formatDate = (v) => (v ? new Date(v).toLocaleString('es', { day: '2-digit'
 
             <div class="rounded-xl border border-slate-200 bg-white p-6">
                 <h2 class="text-sm font-semibold text-slate-800">Inteligencia</h2>
+                <div class="mt-4 rounded-lg bg-indigo-50 p-3">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-medium text-indigo-900">Uso de IA este mes</span>
+                        <span class="text-indigo-700">{{ ai_usage.monthly_messages }}/{{ ai_usage.monthly_limit }}</span>
+                    </div>
+                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-indigo-100">
+                        <div class="h-full rounded-full bg-indigo-600 transition-all" :style="{ width: `${usagePercent}%` }"></div>
+                    </div>
+                    <p class="mt-2 text-[11px] text-indigo-700">{{ ai_usage.daily_messages }} mensajes usados hoy · máximo {{ ai_usage.max_tokens }} tokens por respuesta</p>
+                </div>
                 <dl class="mt-4 space-y-3 text-sm">
                     <div class="flex justify-between"><dt class="text-slate-500">Mensajes IA</dt><dd class="font-medium">{{ metrics.chat_messages }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Visitas</dt><dd class="font-medium">{{ metrics.page_views }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Documentos listos</dt><dd class="font-medium">{{ metrics.ready_documents }}/{{ metrics.documents }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">Costo IA del mes</dt><dd class="font-medium">USD {{ metrics.ai_cost_month.toFixed(4) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Costo IA del mes</dt><dd class="font-medium">USD {{ ai_usage.monthly_cost.toFixed(4) }}</dd></div>
                 </dl>
 
                 <h3 class="mt-6 text-xs font-semibold uppercase tracking-wide text-slate-400">Preguntas sin respuesta</h3>

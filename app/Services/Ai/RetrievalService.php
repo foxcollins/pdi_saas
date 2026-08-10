@@ -17,6 +17,10 @@ class RetrievalService
         }
 
         try {
+            if (config('ai.embedding_provider') === 'fake') {
+                return $this->normalize($this->keywordFallback($query, $k), $k);
+            }
+
             $vector = ai()->queryEmbedding($query);
 
             $rows = DB::select(
@@ -46,7 +50,9 @@ class RetrievalService
 
     public function hasKnowledge(): bool
     {
-        return DB::table('knowledge_chunks')->exists();
+        return DB::table('knowledge_chunks')
+            ->where('tenant_id', tenant_id())
+            ->exists();
     }
 
     private function hasChunks(): bool

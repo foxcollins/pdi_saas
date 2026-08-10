@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\Site\WebsiteBuilderService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class BuilderController extends Controller
 {
@@ -17,6 +18,7 @@ class BuilderController extends Controller
 
         $pages = $website->pages ?: [];
         $home = collect($pages)->first(fn ($p) => $p['slug'] === 'home') ?? $pages[0] ?? ['slug' => 'home', 'title' => 'Inicio', 'sections' => []];
+        $home = $this->normalizeMediaUrls($home);
 
         return inertia('Builder', [
             'site' => [
@@ -47,6 +49,13 @@ class BuilderController extends Controller
             'theme' => ['required', 'array'],
         ]);
 
+        $data['page'] = $this->normalizeMediaUrls($data['page']);
+        $this->validatePageConfig($data['page']);
+
+        if (strlen(json_encode($data)) > 500000) {
+            throw ValidationException::withMessages(['page' => 'La configuración del sitio es demasiado grande.']);
+        }
+
         $website = tenant()->website;
 
         if (! $website) {
@@ -67,6 +76,67 @@ class BuilderController extends Controller
         ]);
 
         return response()->json(['ok' => true]);
+    }
+
+    private function validatePageConfig(array $page): void
+    {
+        $errors = [];
+
+        foreach ($page['sections'] ?? [] as $index => $section) {
+            $type = $section['type'] ?? null;
+            $variant = $section['variant'] ?? null;
+            $definition = $type ? config("site.blocks.{$type}") : null;
+
+            if (! is_array($definition)) {
+                $errors["page.sections.{$index}.type"] = 'El bloque no existe.';
+
+                continue;
+            }
+
+            if (! isset($definition['variants'][$variant])) {
+                $errors["page.sections.{$index}.variant"] = 'La variante del bloque no existe.';
+            }
+
+            $this->validateUrls($section['content'] ?? [], "page.sections.{$index}.content", $errors);
+        }
+
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    private function normalizeMediaUrls(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            return array_map(fn ($item) => $this->normalizeMediaUrls($item), $value);
+        }
+
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        return preg_replace('~^https?://[^/]+(/storage/.*)$~i', '$1', $value) ?? $value;
+    }
+
+    private function validateUrls(mixed $value, string $path, array &$errors): void
+    {
+        if (is_array($value)) {
+            foreach ($value as $key => $child) {
+                $this->validateUrls($child, "{$path}.{$key}", $errors);
+            }
+
+            return;
+        }
+
+        if (! is_string($value) || ! preg_match('/(^|url|image|logo|photo|embed_url)$/i', $path)) {
+            return;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed !== '' && ! preg_match('/^(https?:\/\/|#[a-zA-Z0-9_-]+|\/)/', $trimmed)) {
+            $errors[$path] = 'La URL debe usar http, https, un ancla o una ruta local.';
+        }
     }
 
     public function applyTemplate(Request $request)
