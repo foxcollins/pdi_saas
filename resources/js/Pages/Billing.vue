@@ -79,7 +79,7 @@ function changePlan(slug) {
             <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div v-for="f in aiFeatures" :key="f.key" class="rounded-lg bg-slate-50 p-4">
                     <dt class="text-xs text-slate-500">{{ f.label }}</dt>
-                    <dd class="mt-1 text-lg font-bold text-slate-900">{{ limits.ai[f.key] }}</dd>
+                    <dd class="mt-1 text-lg font-bold text-slate-900">{{ limits.ai[f.key] ?? '—' }}</dd>
                 </div>
             </dl>
         </div>
@@ -97,10 +97,10 @@ function changePlan(slug) {
                     <p class="mt-1 text-2xl font-bold text-slate-900">{{ currency(p.price_monthly) }}</p>
                     <p class="text-xs text-slate-400">/mes</p>
                     <ul class="mt-4 space-y-2 text-xs text-slate-500">
-                        <li>{{ p.limits.docs }} documentos</li>
-                        <li>{{ p.limits.pages }} páginas</li>
-                        <li>{{ p.limits.channels }} canales</li>
-                        <li>{{ p.limits.monthly_messages.toLocaleString() }} mensajes IA/mes</li>
+                        <li>{{ p.limits.docs ?? 0 }} documentos</li>
+                        <li>{{ p.limits.pages ?? 0 }} páginas</li>
+                        <li>{{ p.limits.channels ?? 0 }} canales</li>
+                        <li>{{ (p.limits.monthly_messages ?? 0).toLocaleString() }} mensajes IA/mes</li>
                     </ul>
                     <button
                         v-if="plan?.slug !== p.slug"
