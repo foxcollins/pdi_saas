@@ -19,6 +19,7 @@ use App\Http\Controllers\LeadsController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\PublicSiteController;
+use App\Http\Controllers\ToolsController;
 use App\Http\Controllers\WebhookController;
 use App\Services\Site\DomainResolver;
 use Illuminate\Http\Request;
@@ -100,6 +101,13 @@ Route::middleware(['auth'])->prefix('app')->group(function () {
     Route::get('/integrations', [IntegrationsController::class, 'index']);
     Route::post('/integrations/{channel}', [IntegrationsController::class, 'store']);
     Route::post('/integrations/{channel}/disable', [IntegrationsController::class, 'disable']);
+
+    Route::get('/tools', [ToolsController::class, 'index']);
+    Route::put('/tools', [ToolsController::class, 'updateTools']);
+    Route::post('/tools/products', [ToolsController::class, 'storeProduct']);
+    Route::put('/tools/products/{product}', [ToolsController::class, 'updateProduct']);
+    Route::delete('/tools/products/{product}', [ToolsController::class, 'destroyProduct']);
+    Route::patch('/tools/quotes/{quote}', [ToolsController::class, 'setQuoteStatus']);
 });
 
 Route::post('/api/chat/{slug}', [ChatApiController::class, 'stream']);

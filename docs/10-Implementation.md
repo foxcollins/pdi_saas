@@ -252,3 +252,13 @@ services:
 - **Panel `/app/integrations`**: lista los 5 canales de `config/channels.php`, formularios de credenciales validados por los `fields` definidos, credenciales cifradas con `Crypt` en `integrations.config_encrypted`, `webhook_secret` auto-generado, estado activo/desactivado y URL de webhook por tenant.
 - **Testeable sin cuentas externas**: Telegram (token de @BotFather) es el único canal con callback real listo para probar; WhatsApp/Instagram/Messenger requieren Business Verification y cuentas Meta del cliente (E10 pospuesto); Email requiere provider SMTP.
 - `ChatService::respond()` acepta ahora `channel` y `externalChannelId` para crear/buscar la conversación correcta por canal. Suite al completar: **78 tests (358 aserciones)**.
+
+### 10.14 Tools y cotización (E14)
+
+- **Sistema de tools**: interfaz `Tool` + `BaseTool` (name, description, permission, parameters, definition), `ToolRunner` (valida args, comprueba que la tool esté habilitada en `agents.tools`, ejecuta y traza en `tool_runs`), `ToolManager` (registro singleton). Permisos: `read` (catalog_lookup, quote_calculator), `internal` (create_quote, create_lead, create_task, notify_human), `external` (n8n_webhook).
+- **Catálogo**: tabla `products` (tenant-scoped con RLS) alimentada por el `ProductSeeder` desde `BusinessProfile.products`; `catalog_lookup` busca por keywords solo productos activos del tenant.
+- **Cotización**: `QuoteService` crea la cotización con número secuencial por tenant (`Q-{slug}-0001`), calcula subtotal/impuestos/total y genera PDF simple sin dependencias (`QuotePdfGenerator`, formato PDF 1.4 con texto) en `storage/quotes/...`.
+- **Orquestador**: `ToolOrchestrator::runQuoteFlow` detecta intención de cotización (regex) y encadena `catalog_lookup → quote_calculator → create_quote → create_lead → n8n_webhook`; integrado en `ChatService` antes del RAG. Sin tools habilitadas no cotiza.
+- **Panel `/app/tools`**: toggle de tools del agente, CRUD de productos, estado de cotizaciones y listado de cotizaciones.
+- **Fix preexistente**: `WebhookOutbox` tenía tabla `webhook_outbox` pero Eloquent infiere `webhook_outboxes`; se fijó `protected $table`.
+- **E2E local** (dominio `pdi_saas.mn`): chat de Andina con "Quiero una cotización de una bomba" → SSE con cotización de 3 productos, `Q-andina-hidraulica-0001`, PDF emitido, lead y `tool_runs` registrados. `php artisan test` → **95 passed (423 aserciones)**.

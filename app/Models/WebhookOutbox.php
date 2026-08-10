@@ -10,6 +10,8 @@ class WebhookOutbox extends Model
 {
     use HasUuids, TenantScoped;
 
+    protected $table = 'webhook_outbox';
+
     protected $fillable = [
         'tenant_id', 'event', 'payload', 'status', 'attempts', 'next_attempt_at', 'response_code',
     ];

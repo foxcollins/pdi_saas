@@ -13,6 +13,8 @@ use App\Models\Tenant;
 use App\Services\Ai\AiUsageService;
 use App\Services\Ai\RetrievalService;
 use App\Services\Memory\MemoryService;
+use App\Services\Tools\ToolException;
+use App\Services\Tools\ToolOrchestrator;
 use App\Support\TenantContext;
 use Illuminate\Support\Str;
 
@@ -64,6 +66,30 @@ class ChatService
                 'reply' => $reply,
                 'conversation_id' => $conversation->id,
                 'sources' => [],
+            ];
+        }
+
+        $toolReply = $this->tryQuoteFlow($tenant, $agent, $conversation, $visitor, $message);
+
+        if ($toolReply !== null) {
+            $onChunk($toolReply);
+
+            Message::create([
+                'conversation_id' => $conversation->id,
+                'direction' => 'out',
+                'author_type' => 'agent',
+                'content' => $toolReply,
+            ]);
+
+            $contact->update(['last_activity_at' => now()]);
+            $this->rememberMemory($conversation, $contact);
+            AnalyticsEvent::create(['kind' => 'chat_message', 'context' => ['conversation_id' => $conversation->id]]);
+
+            return [
+                'reply' => $toolReply,
+                'conversation_id' => $conversation->id,
+                'sources' => [],
+                'tool' => 'quote',
             ];
         }
 
@@ -134,6 +160,30 @@ class ChatService
     {
         app(MemoryService::class)->remember($conversation);
         app(MemoryService::class)->consolidate($contact);
+    }
+
+    private function tryQuoteFlow(Tenant $tenant, Agent $agent, Conversation $conversation, array $visitor, string $message): ?string
+    {
+        if (! $this->wantsQuote($message)) {
+            return null;
+        }
+
+        $orchestrator = app(ToolOrchestrator::class);
+
+        if (! $orchestrator->wantsQuote($message)) {
+            return null;
+        }
+
+        try {
+            return $orchestrator->runQuoteFlow($tenant, $agent, $conversation, $visitor, $message);
+        } catch (ToolException $e) {
+            return null;
+        }
+    }
+
+    private function wantsQuote(string $message): bool
+    {
+        return (bool) preg_match('/(cotiz|presupuest|cu[aá]nto cuesta|cu[aá]nto vale|precio de|quiero comprar|pido cotiz)/iu', $message);
     }
 
     private function findOrCreateContact(Tenant $tenant, array $visitor): Contact

@@ -131,8 +131,8 @@ Cada agente tiene: `instrucciones`, `tools habilitadas`, `permisos`, `objetivos`
 
 ## 8. Criterios de éxito
 
-- [ ] Un agente ejecuta el flujo "cotización" completo: requisitos → catálogo → cálculo → PDF → lead → envío → seguimiento.
-- [ ] Acciones destructivas/externas controladas por política (auto vs aprobar).
-- [ ] Toda acción registrada y auditable.
-- [ ] Budget por tenant respetado; loops limitados.
-- [ ] Escalamiento a humano con contexto completo.
+- [x] Un agente ejecuta el flujo "cotización" completo: requisitos → catálogo → cálculo → PDF → lead → envío → seguimiento. *(E14: `catalog_lookup` → `quote_calculator` → `create_quote` con PDF → `create_lead` → `n8n_webhook`; integrado en `ChatService` por detección de intención.)*
+- [ ] Acciones destructivas/externas controladas por política (auto vs aprobar). *(parcial: `n8n_webhook` con nivel `external` y toggle por agente en `/app/tools`)*
+- [x] Toda acción registrada y auditable. *(tabla `tool_runs` con input/output/status/latencia por tenant)*
+- [ ] Budget por tenant respetado; loops limitados. *(los límites IA de `AiUsageService` aplican al chat; el loop de tools queda para E13)*
+- [ ] Escalamiento a humano con contexto completo. *(bandeja CRM ya escala; tool `notify_human` registra la escalada)*

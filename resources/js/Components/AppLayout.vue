@@ -22,6 +22,7 @@ const nav = [
     { label: 'Memoria', href: '/app/memory', icon: 'M4 6h16v12H4zM8 3h8v3H8zM7 10h.01M11 10h.01M15 10h.01M8 14h.01M11 14h.01M15 14h.01' },
     { label: 'Plan', href: '/app/billing', icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
     { label: 'Integraciones', href: '/app/integrations', icon: 'M9 12h6m-6 4h6m2-9a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2M9 5a2 2 0 012-2h2a2 2 0 012 2v2H9V5z' },
+    { label: 'Tools', href: '/app/tools', icon: 'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z' },
 ];
 
 function logout() {
