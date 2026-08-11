@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\AgentsController;
 use App\Http\Controllers\AiBuilderController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
@@ -53,6 +54,8 @@ Route::middleware(['auth'])->prefix('app')->group(function () {
     Route::get('/analytics', AnalyticsController::class);
     Route::get('/billing', [BillingController::class, 'show']);
     Route::put('/billing', [BillingController::class, 'update']);
+    Route::get('/agents', [AgentsController::class, 'index']);
+    Route::put('/agents/{agent}', [AgentsController::class, 'update']);
     Route::get('/assistant', [AgentController::class, 'show']);
     Route::put('/assistant', [AgentController::class, 'update']);
     Route::get('/builder', [BuilderController::class, 'show']);

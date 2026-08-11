@@ -117,6 +117,26 @@ El panel **muestra u oculta secciones según las tools activas** del agente (y l
 - Si `create_task` está activa → se muestra la sección de tareas/estado.
 - Las tools no incluidas en el plan aparecen **bloqueadas** (deshabilitadas con aviso de upgrade), no solo ocultas.
 
+### 4.7 Agentes especializados y routing por intención (E15)
+
+Cada tenant puede tener **múltiples agentes especializados** además del agente general (`assistant`). El chat elige automáticamente el agente según la intención del mensaje; si ninguno calza, cae al general.
+
+**Presets (activables por tenant):**
+
+| Agente | Propósito | Tools sugeridas | Keywords de trigger |
+|---|---|---|---|
+| `reception` | Primer contacto, saluda, responde general, identifica | — | hola, buenos días, quién eres, información, contacto |
+| `sales` | Vende y cotiza | `catalog_lookup`, `quote_calculator`, `create_quote`, `create_lead` | precio, cotiz, comprar, cuánto, producto, vender, oferta |
+| `support` | Resuelve dudas postventa | `create_task`, `notify_human` | problema, no funciona, garantía, falla, error, devolución |
+| `booking` | Agenda citas/reservas | `create_task` | cita, reservar, reserva, agendar, turno, disponibilidad |
+| `followup` | Persigue leads sin respuesta (triggers de background) | `create_task` | (no se dispara por chat) |
+
+**Implementación:**
+
+- `agents` gana `description` y `trigger_keywords` (jsonb). `AgentPresetService::ensureForTenant()` crea los presets (inactivos) si faltan; el panel `/app/agents` permite activarlos, editarlos y asignarles tools (limitadas por plan vía `PlanService::toolsAllowed`).
+- `AgentRouter::resolve()` normaliza el mensaje y puntúa cada agente activo por coincidencia de keywords; devuelve el mejor o el general (`assistant`).
+- `ChatService` usa `AgentRouter` para elegir el agente en cada turno (personalidad, guardrails y tools del agente seleccionado).
+
 ---
 
 ## 5. Guardrails y seguridad
@@ -158,4 +178,5 @@ El panel **muestra u oculta secciones según las tools activas** del agente (y l
 - [x] Toda acción registrada y auditable. *(tabla `tool_runs` con input/output/status/latencia por tenant)*
 - [x] Budget por tenant respetado; loops limitados. *(E13: tools limitadas por plan vía `plans.limits.tools` y validadas en runtime por `ToolRunner`; los límites IA de `AiUsageService` aplican al chat)*
 - [x] El admin ve qué tools están activas y el cliente ve qué puede hacer el agente. *(E13: panel `/app/tools` adaptativo + indicador de capacidades en la web pública)*
+- [x] Múltiples agentes especializados configurables por tenant con routing automático por intención. *(E15: presets reception/sales/support/booking/followup, `AgentRouter` por keywords, panel `/app/agents`)*
 - [ ] Escalamiento a humano con contexto completo. *(bandeja CRM ya escala; tool `notify_human` registra la escalada)*

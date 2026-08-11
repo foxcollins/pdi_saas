@@ -269,3 +269,11 @@ services:
 - **Panel `/app/tools` adaptativo**: muestra el plan actual, bloquea visualmente las tools no incluidas ("No incluida en tu plan", checkbox deshabilitado) y el endpoint de guardado rechaza tools fuera del plan (validación `in:` restringida). Las secciones "Catálogo de productos" y "Cotizaciones generadas" solo aparecen si hay tools de catálogo/cotización activas.
 - **Indicador de capacidades en la web pública**: `SiteRenderer` expone `site.chat.capabilities` (labels legibles de las tools activas del agente dentro de lo permitido por el plan) y el `ChatWidget` muestra los chips "Puedo ayudarte a…" bajo el header. Lo que el admin activa se refleja en el comportamiento del chat **y** en el indicador del sitio.
 - **E2E**: re-seed de `PlanSeeder` para propagar `tools` a los planes; tenant demo con plan Pro mantiene el flujo de cotización. `php artisan test` → **101 passed (468 aserciones)**.
+
+### 10.16 Agentes especializados con routing por intención (E15)
+
+- **Presets**: `AgentPresetService` define 6 agentes por tenant — `assistant` (general, activo), `reception`, `sales`, `support`, `booking`, `followup` — cada uno con nombre, descripción, instrucciones, keywords de trigger y tools sugeridas. `ensureForTenant()` crea los que faltan (idempotente).
+- **Routing automático**: `AgentRouter::resolve()` normaliza el mensaje (minúsculas + sin tildes) y puntúa los agentes **activos** por coincidencia de `trigger_keywords`; devuelve el mejor o cae al `assistant`. `ChatService` usa el router en cada turno (personalidad, guardrails y tools del agente elegido).
+- **Panel `/app/agents`**: lista los presets, permite activar/desactivar cada agente (toggle), editar nombre/instrucciones/keywords y asignar tools **limitadas por plan** (`PlanService::toolsAllowed`; la validación `in:` rechaza tools fuera del plan). Se mantienen las rutas `/app/assistant` para compatibilidad.
+- **Migración**: `agents` gana `description` y `trigger_keywords` (jsonb).
+- **E2E local**: con agentes especializados inactivos, Andina sigue cotizando vía `assistant`; al activar `sales` (con `catalog_lookup`/`create_quote`), el chat cotiza a través de ese agente. `php artisan test` → **109 passed (495 aserciones)**.

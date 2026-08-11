@@ -10,6 +10,7 @@ use App\Models\Conversation;
 use App\Models\Lead;
 use App\Models\Message;
 use App\Models\Tenant;
+use App\Services\Agents\AgentRouter;
 use App\Services\Ai\AiUsageService;
 use App\Services\Ai\RetrievalService;
 use App\Services\Memory\MemoryService;
@@ -23,6 +24,7 @@ class ChatService
     public function __construct(
         private RetrievalService $retrieval,
         private AiUsageService $usage,
+        private AgentRouter $router,
     ) {}
 
     public function respond(string $tenantSlug, string $message, array $visitor = [], ?callable $onChunk = null, string $channel = 'web', ?string $externalChannelId = null): array
@@ -33,7 +35,7 @@ class ChatService
         $this->usage->assertCanChat($tenant);
 
         $profile = $tenant->profile;
-        $agent = Agent::query()->where('slug', 'assistant')->first() ?? new Agent(['name' => $tenant->name]);
+        $agent = $this->router->resolve($tenant, $message);
 
         $contact = $this->findOrCreateContact($tenant, $visitor);
         $conversation = $this->findOrCreateConversation($tenant, $contact, $channel, $externalChannelId);

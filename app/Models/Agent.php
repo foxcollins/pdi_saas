@@ -11,13 +11,14 @@ class Agent extends Model
     use HasUuids, TenantScoped;
 
     protected $fillable = [
-        'tenant_id', 'slug', 'name', 'instructions', 'tools',
-        'model_profile_id', 'is_active', 'guardrails',
+        'tenant_id', 'slug', 'name', 'description', 'instructions', 'trigger_keywords',
+        'tools', 'model_profile_id', 'is_active', 'guardrails',
     ];
 
     protected $casts = [
         'tools' => 'array',
         'is_active' => 'boolean',
         'guardrails' => 'array',
+        'trigger_keywords' => 'array',
     ];
 }
